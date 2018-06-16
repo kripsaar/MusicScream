@@ -42,6 +42,8 @@ namespace MusicScream.Utilities
 
         private async Task<ArtistResult> GetArtistPageInfo(string artistLink)
         {
+            if (artistLink == "")
+                return null;
             var requestUrl = GetPageUrl(artistLink);
             var response = await _httpClient.GetStringAsync(requestUrl);
             var artistResult = JObject.Parse(response).ToObject<ArtistResult>();
@@ -51,17 +53,40 @@ namespace MusicScream.Utilities
         public async Task<Artist> GetArtistInfo(string artistName)
         {
             var artistLink = await FindArtistPage(artistName);
+            if (artistLink == "")
+            {
+                return new Artist
+                {
+                    Name = artistName,
+                    VgmdbLink = "",
+                    Aliases = new string[0]
+                };
+            }
             var artistResult = await GetArtistPageInfo(artistLink);
+            var aliases = new List<string>();
+            if (artistResult.Aliases != null)
+                aliases.AddRange(StringUtils.GetStringsWithPermutations(artistResult.Aliases.Select(_ => _.Names.En)));
+            if (artistResult.Info.Variations != null)
+                aliases.AddRange(StringUtils.GetStringsWithPermutations(artistResult.Info.Variations.Select(_ => _.Names.En)));
+            if (artistResult.Name_Real != null)
+                aliases.AddRange(StringUtils.GetStringsWithPermutations(new []{artistResult.Name}));
             var artist = new Artist
             {
                 VgmdbLink = artistResult.Link,
                 Name = artistResult.Name_Real ?? artistResult.Name,
-                Aliases = (artistResult.Aliases?.Select(_ => _.Names.En) ?? new List<string>())
-                    .Concat(artistResult.Info.Variations?.Select(_ => _.Names.En) ?? new List<string>())
-                    .Concat((artistResult.Name_Real == null) ? new string[0] : new[] {artistResult.Name}).ToArray()
+                Aliases = aliases.ToArray()
             };
             
             return artist;
+        }
+
+        public async Task<IEnumerable<string>> GetArtistUnitNames(string artistLink)
+        {
+            if (artistLink == "")
+                return Enumerable.Empty<string>();
+            var artistResult = await GetArtistPageInfo(artistLink);
+            var res = artistResult.Units.Select(_ => _.Names.En);
+            return res;
         }
 
         private string FindClosestArtistNameMatchLink(string query, IEnumerable<ArtistSearchResults> artists)

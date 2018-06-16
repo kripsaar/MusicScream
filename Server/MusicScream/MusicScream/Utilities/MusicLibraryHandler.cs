@@ -48,42 +48,25 @@ namespace MusicScream.Utilities
             return songData;
         }
 
-        private void ScanFolder(string folderName)
+        private async Task ScanFolder(string folderName)
         {
             var filenames = Directory.GetFiles(folderName);
 
             foreach (var filename in filenames)
             {
-                TagLib.File file = TagLib.File.Create(filename);
-                if (file.MimeType != "audio/mpeg")
-                    continue;
-                if (_dbContext.Songs.Any(s =>
-                    s.Artist == file.Tag.FirstPerformer && s.Title == file.Tag.Title))
-                    continue;
-                var song = new Song
-                {
-                    Title = file.Tag.Title,
-                    Artist = file.Tag.FirstPerformer,
-                    Album = file.Tag.Album,
-                    Genre = file.Tag.FirstGenre,
-                    Year = file.Tag.Year,
-                    Filename = filename
-                };
-                _dbContext.Add(song);
+                await CreateSong(filename);
             }
-
-            _dbContext.SaveChanges();
 
             // Check subdirectories
 
             var subdirs = Directory.GetDirectories(folderName);
             foreach (var folder in subdirs)
             {
-                ScanFolder(folder);
+                await ScanFolder(folder);
             }
         }
 
-        public bool RescanMusicFolder()
+        public async Task<bool> RescanMusicFolder()
         {
             if (!Directory.Exists(_musicFilesFolder))
             {
@@ -93,7 +76,7 @@ namespace MusicScream.Utilities
 
             try
             {
-                ScanFolder(_musicFilesFolder);
+                await ScanFolder(_musicFilesFolder);
                 return true;
             }
             catch (Exception e)
@@ -102,9 +85,162 @@ namespace MusicScream.Utilities
             }
         }
 
-        public async void CreateArtist(string artistName)
+        private async Task CreateSong(string filename)
+        {
+            TagLib.File file = TagLib.File.Create(filename);
+            if (!(file.MimeType == "audio/mpeg" || file.MimeType == "taglib/mp3"))
+                return;
+            var title = file.Tag.Title.Trim();
+            // TODO: Handle multiple artists in one name
+            var artistName = file.Tag.FirstPerformer.Trim();
+            var albumName = file.Tag.Album.Trim();
+            if (CheckIfSongExists(title, artistName))
+                return;
+            var song = new Song
+            {
+                Title = title,
+                Album = albumName,
+                Genre = file.Tag.FirstGenre,
+                Year = file.Tag.Year,
+                Filename = filename
+            };
+            _dbContext.Add(song);
+            await _dbContext.SaveChangesAsync();
+
+            var anyArtists = CheckIfArtistExists(artistName);
+
+            if (!anyArtists)
+            {
+                await CreateArtist(artistName);
+            }
+
+            var artists = FindArtistsWithName(artistName);
+            var artistIds = artists.Select(_ => _.Id);
+
+            foreach (var artistId in artistIds)
+            {
+                var artistSongLink = new ArtistSongLink
+                {
+                    ArtistId = artistId,
+                    SongId = song.Id
+                };
+                try
+                {
+
+                    _dbContext.Add(artistSongLink);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.StackTrace);
+                }
+            }
+
+            await _dbContext.SaveChangesAsync();
+        }
+
+        private bool CheckIfSongExists(string title, string artistName)
+        {
+            var songs = _dbContext.Songs.Where(_ => _.Title == title);
+            foreach (var song in songs)
+            {
+                if (song.ArtistSongLinks == null)
+                    return true;
+                if (song.ArtistSongLinks.Any(_ =>
+                    _.Artist.Name == artistName || _.Artist.Aliases.Contains(artistName)
+                ))
+                    return true;
+            }
+            return false;
+        }
+
+        public async Task CreateArtist(string artistName)
         {
             var artist = await _vgmdbLookupHandler.GetArtistInfo(artistName);
+
+            _dbContext.Add(artist);
+            await _dbContext.SaveChangesAsync();
+
+            var unitNames = await _vgmdbLookupHandler.GetArtistUnitNames(artist.VgmdbLink);
+            var units = new List<Artist>();
+            foreach (var unitName in unitNames)
+            {
+                units.AddRange(FindArtistsWithName(unitName));
+            }
+
+            foreach (var unit in units)
+            {
+                var artistUnitLink = new ArtistUnitLink
+                { 
+                    ArtistId = artist.Id,
+                    UnitId = unit.Id
+                };
+                _dbContext.Add(artistUnitLink);
+            }
+
+            await _dbContext.SaveChangesAsync();
+        }
+
+        private List<Artist> FindArtistsWithName(string name)
+        {
+            var artistsWithName = _dbContext.Artists.Where(_ => _.Name == name).ToList();
+            var artistsWithAlias = _dbContext.Artists.Where(_ => _.Aliases.Contains(name)).ToList();
+            var artists = artistsWithName.Union(artistsWithAlias).ToList();
+            return artists;
+        }
+
+        private bool CheckIfArtistExists(string artistName)
+        {
+            var artists = FindArtistsWithName(artistName);
+            return artists.Any();
+        }
+
+        private IEnumerable<string> ParseArtistNames(string artistNameString)
+        {
+            string[] names;
+            if (artistNameString.Contains(","))
+            {
+                names = artistNameString.Split(",");
+            }
+            else if (artistNameString.Contains("、"))
+            {
+                names = artistNameString.Split("、");
+            }
+            else
+                return new[] {HandleNameWithParenthesis(artistNameString)};
+
+            var parsedNames = names.Select(HandleNameWithParenthesis);
+
+            return parsedNames;
+        }
+
+        private string HandleNameWithParenthesis(string name)
+        {
+            var mainName = name;
+            if ((name.Contains("(") && name.Contains(")")) || name.Contains("（") && name.Contains("）"))
+            {
+                var braceStart = '(';
+                var braceEnd = ')';
+                if (name.Contains("（"))
+                {
+                    braceStart = '（';
+                    braceEnd = '）';
+                }
+//                高海千歌(CV.伊波杏樹)
+//                キャロル・マールス・ディーンハイム（CV：水瀬 いのり）
+                var splitName = name.Split(braceStart);
+                if (splitName.Length < 2)
+                    return mainName;
+                splitName[0].TrimEnd();
+                splitName[1].TrimEnd(braceEnd);
+                if (splitName[1].StartsWith("CV") || splitName[1].StartsWith("cv"))
+                {
+                    mainName = splitName[1].Substring(2).Trim();
+                    if (mainName.StartsWith(".") || mainName.StartsWith("：") || mainName.StartsWith(":"))
+                        mainName = mainName.Substring(1).Trim();
+                }
+            }
+
+            return mainName;
         }
 
         public class SongData
