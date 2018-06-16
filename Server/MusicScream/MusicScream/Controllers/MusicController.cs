@@ -29,7 +29,7 @@ namespace MusicScream.Controllers
                 {
                     song.Id,
                     song.Title,
-                    song.Artist,
+                    Artist = song.ArtistSongLinks.FirstOrDefault()?.Artist.Name ?? "Unknown Artist",
                     song.Album,
                     song.Genre,
                     song.Year
@@ -39,14 +39,13 @@ namespace MusicScream.Controllers
 
         private JsonResult SongsToJson(IEnumerable<Song> songs)
         {
-
             return Json(JObject.FromObject(new
             {
                 songs = songs.Select(song => new
                 {
                     song.Id,
                     song.Title,
-                    song.Artist,
+                    Artist = song.ArtistSongLinks.FirstOrDefault()?.Artist.Name ?? "Unknown Artist",
                     song.Album,
                     song.Genre,
                     song.Year
@@ -56,7 +55,7 @@ namespace MusicScream.Controllers
 
         public IActionResult GetAllSongs()
         {
-            return SongsToJson(_dbContext.Songs);
+            return SongsToJson(_dbContext.Songs.Include(_ => _.ArtistSongLinks).ThenInclude(_ => _.Artist));
         }
 
         public IActionResult GetSong(int songId)
@@ -74,16 +73,10 @@ namespace MusicScream.Controllers
             return new FileContentResult(songData.Data, songData.MimeType);
         }
 
-        public IActionResult RefreshMusicLibrary()
+        public async Task<IActionResult> RefreshMusicLibrary()
         {
-            if (!_libraryHandler.RescanMusicFolder())
+            if (!(await _libraryHandler.RescanMusicFolder()))
                 return BadRequest();
-
-            //TODO: Remove test
-            _libraryHandler.CreateArtist("Nano");
-            _libraryHandler.CreateArtist("nano.RIPE");
-            _libraryHandler.CreateArtist("やなぎなぎ");
-            _libraryHandler.CreateArtist("Kawada Mami");
 
             return Ok();
         }

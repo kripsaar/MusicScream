@@ -9,6 +9,12 @@ namespace MusicScream.Models
     public class MusicScreamContext : DbContext
     {
         public DbSet<Song> Songs { get; set; }
+
+        public DbSet<Artist> Artists { get; set; }
+        public DbSet<ArtistUnitLink> ArtistUnitLinks { get; set; }
+        public DbSet<ArtistAlbumLink> ArtistAlbumLinks { get; set; }
+        public DbSet<ArtistSongLink> ArtistSongLinks { get; set; }
+
         public DbSet<Playlist> Playlists { get; set; }
         public DbSet<SongPlaylistLink> SongPlaylistLinks { get; set; }
 
@@ -34,6 +40,48 @@ namespace MusicScream.Models
                 .HasOne(spl => spl.Playlist)
                 .WithMany(pl => pl.SongPlaylistLinks)
                 .HasForeignKey(spl => spl.PlaylistId);
+
+            modelBuilder.Entity<ArtistUnitLink>()
+                .HasKey(_ => new { _.ArtistId, _.UnitId });
+
+            modelBuilder.Entity<ArtistUnitLink>()
+                .HasOne(aul => aul.Artist)
+                .WithMany(a => a.ArtistUnitLinks)
+                .HasForeignKey(aul => aul.ArtistId);
+
+            modelBuilder.Entity<ArtistUnitLink>()
+                .HasOne(aul => aul.Unit)
+                .WithMany(u => u.UnitArtistLinks)
+                .HasForeignKey(aul => aul.UnitId);
+
+            modelBuilder.Entity<ArtistAlbumLink>()
+                .HasKey(aal => new {aal.ArtistId, aal.AlbumId});
+
+            modelBuilder.Entity<ArtistAlbumLink>()
+                .HasOne(aal => aal.Artist)
+                .WithMany(a => a.ArtistAlbumLinks)
+                .HasForeignKey(aal => aal.ArtistId);
+
+            modelBuilder.Entity<ArtistAlbumLink>()
+                .HasOne(aal => aal.Album)
+                .WithMany(a => a.ArtistAlbumLinks)
+                .HasForeignKey(aal => aal.AlbumId);
+
+            modelBuilder.Entity<ArtistSongLink>()
+                .HasKey(aal => new { aal.ArtistId, aal.SongId });
+
+            modelBuilder.Entity<ArtistSongLink>()
+                .HasOne(asl => asl.Artist)
+                .WithMany(a => a.ArtistSongLinks)
+                .HasForeignKey(asl => asl.ArtistId);
+
+            modelBuilder.Entity<ArtistSongLink>()
+                .HasOne(asl => asl.Song)
+                .WithMany(a => a.ArtistSongLinks)
+                .HasForeignKey(asl => asl.SongId);
+
+            modelBuilder.Entity<AlbumSongLink>()
+                .HasKey(_ => new {_.AlbumId, _.SongId});
         }
 
         private void SetSchemaForAllDbSets(ModelBuilder modelBuilder)

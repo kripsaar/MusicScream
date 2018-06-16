@@ -9,11 +9,11 @@ namespace MusicScream.Models
     {
         public int Id { get; set; }
         public string Title { get; set; }
-        public string Artist { get; set; }
         public string Album { get; set; }
         public uint Year { get; set; }
         public string Genre { get; set; }
         public string Filename { get; set; }
         public IEnumerable<SongPlaylistLink> SongPlaylistLinks { get; set; }
+        public IEnumerable<ArtistSongLink> ArtistSongLinks { get; set; }
     }
 }
