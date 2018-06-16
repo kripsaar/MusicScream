@@ -107,5 +107,20 @@ namespace MusicScream.Utilities
             lhs = rhs;
             rhs = temp;
         }
+
+        public static IEnumerable<string> GetStringsWithPermutations(IEnumerable<string> strings)
+        {
+            var res = new List<string>();
+            foreach (var str in strings)
+            {
+                StringUtils.ForAllPermutations(str.Split(" "), splitStr =>
+                {
+                    res.Add(String.Join(" ", splitStr));
+                    return false;
+                });
+            }
+
+            return res;
+        }
     }
 }
