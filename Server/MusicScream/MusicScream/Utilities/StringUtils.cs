@@ -122,5 +122,12 @@ namespace MusicScream.Utilities
 
             return res;
         }
+
+        // ReSharper disable once InconsistentNaming
+        public static bool ContainsCJK(this string str)
+        {
+            var res = str.Any(c => (uint) c >= 0x4E00 && (uint) c <= 0x2FA1F);
+            return res;
+        }
     }
 }
