@@ -91,10 +91,10 @@ namespace MusicScream.Utilities
             if (!(file.MimeType == "audio/mpeg" || file.MimeType == "taglib/mp3"))
                 return;
             var title = file.Tag.Title.Trim();
-            // TODO: Handle multiple artists in one name
-            var artistName = file.Tag.FirstPerformer.Trim();
+            var rawArtistName = file.Tag.FirstPerformer.Trim();
+            var artistNames = ParseArtistNames(rawArtistName);
             var albumName = file.Tag.Album.Trim();
-            if (CheckIfSongExists(title, artistName))
+            if (CheckIfSongExists(title, artistNames))
                 return;
             var song = new Song
             {
@@ -107,14 +107,13 @@ namespace MusicScream.Utilities
             _dbContext.Add(song);
             await _dbContext.SaveChangesAsync();
 
-            var anyArtists = CheckIfArtistExists(artistName);
-
-            if (!anyArtists)
+            foreach (var artistName in artistNames)
             {
-                await CreateArtist(artistName);
+                if (!CheckIfArtistExists(artistName))
+                    await CreateArtist(artistName);
             }
 
-            var artists = FindArtistsWithName(artistName);
+            var artists = FindArtistsWithNames(artistNames);
             var artistIds = artists.Select(_ => _.Id);
 
             foreach (var artistId in artistIds)
@@ -138,7 +137,7 @@ namespace MusicScream.Utilities
             await _dbContext.SaveChangesAsync();
         }
 
-        private bool CheckIfSongExists(string title, string artistName)
+        private bool CheckIfSongExists(string title, IEnumerable<string> artistNames)
         {
             var songs = _dbContext.Songs.Where(_ => _.Title == title);
             foreach (var song in songs)
@@ -146,16 +145,30 @@ namespace MusicScream.Utilities
                 if (song.ArtistSongLinks == null)
                     return true;
                 if (song.ArtistSongLinks.Any(_ =>
-                    _.Artist.Name == artistName || _.Artist.Aliases.Contains(artistName)
+                    artistNames.Contains(_.Artist.Name) || _.Artist.Aliases.Intersect(artistNames).Any()
                 ))
                     return true;
             }
             return false;
         }
 
+        public async Task CreateArtists(IEnumerable<string> artistNames)
+        {
+            foreach (var artistName in artistNames)
+            {
+                await CreateArtist(artistName);
+            }
+        }
+
         public async Task CreateArtist(string artistName)
         {
             var artist = await _vgmdbLookupHandler.GetArtistInfo(artistName);
+
+            if (artist.Name.ContainsCJK() && artist.Name.Contains(" "))
+            {
+                artist.Aliases.Append(artist.Name);
+                artist.Name = String.Join("", artist.Name.Split(" "));
+            }
 
             _dbContext.Add(artist);
             await _dbContext.SaveChangesAsync();
@@ -180,11 +193,19 @@ namespace MusicScream.Utilities
             await _dbContext.SaveChangesAsync();
         }
 
+        private List<Artist> FindArtistsWithNames(IEnumerable<string> names)
+        {
+            var artists = new List<Artist>();
+            foreach (var name in names)
+            {
+                artists.AddRange(FindArtistsWithName(name));
+            }
+            return artists;
+        }
+
         private List<Artist> FindArtistsWithName(string name)
         {
-            var artistsWithName = _dbContext.Artists.Where(_ => _.Name == name).ToList();
-            var artistsWithAlias = _dbContext.Artists.Where(_ => _.Aliases.Contains(name)).ToList();
-            var artists = artistsWithName.Union(artistsWithAlias).ToList();
+            var artists = _dbContext.Artists.Where(_ => _.Name == name || _.Aliases.Contains(name)).ToList();
             return artists;
         }
 
@@ -237,6 +258,10 @@ namespace MusicScream.Utilities
                     mainName = splitName[1].Substring(2).Trim();
                     if (mainName.StartsWith(".") || mainName.StartsWith("：") || mainName.StartsWith(":"))
                         mainName = mainName.Substring(1).Trim();
+                }
+                else
+                {
+                    mainName = splitName[0];
                 }
             }
 
