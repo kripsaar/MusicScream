@@ -67,7 +67,11 @@ namespace MusicScream.Utilities
             if (artistResult.Aliases != null)
                 aliases.AddRange(StringUtils.GetStringsWithPermutations(artistResult.Aliases.Select(_ => _.Names.En)));
             if (artistResult.Info.Variations != null)
-                aliases.AddRange(StringUtils.GetStringsWithPermutations(artistResult.Info.Variations.Select(_ => _.Names.En)));
+            {
+                var enNames = artistResult.Info.Variations.Where(_ => _.Names.En != null).Select(_ => _.Names.En);
+                var jaNames = artistResult.Info.Variations.Where(_ => _.Names.Ja != null).Select(_ => _.Names.Ja);
+                aliases.AddRange(StringUtils.GetStringsWithPermutations(enNames.Concat(jaNames)));
+            }
             if (artistResult.Name_Real != null)
                 aliases.AddRange(StringUtils.GetStringsWithPermutations(new []{artistResult.Name}));
             var artist = new Artist
@@ -134,6 +138,7 @@ namespace MusicScream.Utilities
         private class NamesResult
         {
             public string En { get; set; }
+            public string Ja { get; set; }
         }
 
         private class TitlesResult
