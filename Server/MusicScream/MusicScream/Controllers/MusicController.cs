@@ -45,7 +45,7 @@ namespace MusicScream.Controllers
                 {
                     song.Id,
                     song.Title,
-                    Artist = song.ArtistSongLinks.FirstOrDefault()?.Artist.Name ?? "Unknown Artist",
+                    Artist = song.ArtistSongLinks.Any() ? String.Join(", ", song.ArtistSongLinks.Select(_ => _.Artist.Name)) : "Unknown Artist",
                     song.Album,
                     song.Genre,
                     song.Year
