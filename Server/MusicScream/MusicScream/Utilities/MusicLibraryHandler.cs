@@ -251,8 +251,8 @@ namespace MusicScream.Utilities
                 var splitName = name.Split(braceStart);
                 if (splitName.Length < 2)
                     return mainName;
-                splitName[0].TrimEnd();
-                splitName[1].TrimEnd(braceEnd);
+                splitName[0] = splitName[0].TrimEnd();
+                splitName[1] = splitName[1].TrimEnd(braceEnd);
                 if (splitName[1].StartsWith("CV") || splitName[1].StartsWith("cv"))
                 {
                     mainName = splitName[1].Substring(2).Trim();
