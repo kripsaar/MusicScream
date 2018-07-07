@@ -96,16 +96,6 @@ namespace MusicScream.Utilities
             var albumName = file.Tag.Album.Trim();
             if (CheckIfSongExists(title, artistNames))
                 return;
-            var song = new Song
-            {
-                Title = title,
-                Album = albumName,
-                Genre = file.Tag.FirstGenre,
-                Year = file.Tag.Year,
-                Filename = filename
-            };
-            _dbContext.Add(song);
-            await _dbContext.SaveChangesAsync();
 
             foreach (var artistName in artistNames)
             {
@@ -114,30 +104,38 @@ namespace MusicScream.Utilities
             }
 
             var artists = FindArtistsWithNames(artistNames);
-            var artistIds = artists.Select(_ => _.Id);
 
-            foreach (var artistId in artistIds)
+            // Create album
+
+            var album = await CreateAlbumAndLinkToArtist(albumName, artists);
+
+            // Find proper song title(s) from album
+
+            var titleAndAliases = await _vgmdbLookupHandler.FindSongTitleAndAliases(title, album.VgmdbLink);
+
+            // Create song
+
+            var song = new Song
             {
-                var artistSongLink = new ArtistSongLink
-                {
-                    ArtistId = artistId,
-                    SongId = song.Id
-                };
-                try
-                {
+                Title = titleAndAliases.songTitle,
+                Aliases = titleAndAliases.aliases.ToArray(),
+                Album = album.Title,
+                Genre = file.Tag.FirstGenre,
+                Year = file.Tag.Year,
+                Filename = filename
+            };
+            _dbContext.Add(song);
+            _dbContext.SaveChanges();
 
-                    _dbContext.Add(artistSongLink);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.StackTrace);
-                }
-            }
+            // Create song links
 
-            await _dbContext.SaveChangesAsync();
+            CreateArtistSongLinks(artists, song);
+            CreateAlbumSongLink(album, song);
+
+            // TODO: Deal with duplicates
         }
 
-        private bool CheckIfSongExists(string title, IEnumerable<string> artistNames)
+        private bool CheckIfSongExists(string title, IReadOnlyList<string> artistNames)
         {
             var songs = _dbContext.Songs.Where(_ => _.Title == title);
             foreach (var song in songs)
@@ -152,14 +150,6 @@ namespace MusicScream.Utilities
             return false;
         }
 
-        public async Task CreateArtists(IEnumerable<string> artistNames)
-        {
-            foreach (var artistName in artistNames)
-            {
-                await CreateArtist(artistName);
-            }
-        }
-
         public async Task CreateArtist(string artistName)
         {
             var artist = await _vgmdbLookupHandler.GetArtistInfo(artistName);
@@ -171,8 +161,13 @@ namespace MusicScream.Utilities
             }
 
             _dbContext.Add(artist);
-            await _dbContext.SaveChangesAsync();
+            _dbContext.SaveChanges();
 
+            await CreateArtistUnitLinks(artist);
+        }
+
+        private async Task CreateArtistUnitLinks(Artist artist)
+        {
             var unitNames = await _vgmdbLookupHandler.GetArtistUnitNames(artist.VgmdbLink);
             var units = new List<Artist>();
             foreach (var unitName in unitNames)
@@ -183,17 +178,87 @@ namespace MusicScream.Utilities
             foreach (var unit in units)
             {
                 var artistUnitLink = new ArtistUnitLink
-                { 
+                {
                     ArtistId = artist.Id,
                     UnitId = unit.Id
                 };
                 _dbContext.Add(artistUnitLink);
             }
 
-            await _dbContext.SaveChangesAsync();
+            _dbContext.SaveChanges();
+
         }
 
-        private List<Artist> FindArtistsWithNames(IEnumerable<string> names)
+        private void CreateArtistSongLinks(IReadOnlyList<Artist> artists, Song song)
+        {
+            foreach (var artist in artists)
+            {
+                var artistSongLink = new ArtistSongLink
+                {
+                    ArtistId = artist.Id,
+                    SongId = song.Id
+                };
+                _dbContext.Add(artistSongLink);
+            }
+
+            _dbContext.SaveChanges();
+        }
+
+        private async Task<Album> CreateAlbumAndLinkToArtist(string albumName, IReadOnlyList<Artist> artists)
+        {
+            Album album;
+            var firstArtist = artists.FirstOrDefault();
+            if (!string.IsNullOrEmpty(firstArtist?.VgmdbLink))
+            {
+                 album = await _vgmdbLookupHandler.FindAlbumFromArtistDiscography(albumName, firstArtist.VgmdbLink);
+            }
+            else
+                album = await _vgmdbLookupHandler.FindAlbumFromSearch(albumName);
+
+            // Adds album to DB context
+            _dbContext.Add(album);
+            try
+            {
+                _dbContext.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            // Create album artist link
+            CreateArtistAlbumLinks(artists, album);
+
+            return album;
+        }
+
+        private void CreateArtistAlbumLinks(IReadOnlyList<Artist> artists, Album album)
+        {
+            foreach (var artist in artists)
+            {
+                var artistAlbumLink = new ArtistAlbumLink
+                {
+                    AlbumId = album.Id,
+                    ArtistId = artist.Id
+                };
+                _dbContext.Add(artistAlbumLink);
+            }
+
+            _dbContext.SaveChanges();
+        }
+
+        private void CreateAlbumSongLink(Album album, Song song)
+        {
+            var albumSongLink = new AlbumSongLink
+            {
+                AlbumId = album.Id,
+                SongId = song.Id
+            };
+            _dbContext.Add(albumSongLink);
+            _dbContext.SaveChanges();
+        }
+
+        private List<Artist> FindArtistsWithNames(IReadOnlyList<string> names)
         {
             var artists = new List<Artist>();
             foreach (var name in names)
@@ -215,7 +280,7 @@ namespace MusicScream.Utilities
             return artists.Any();
         }
 
-        private IEnumerable<string> ParseArtistNames(string artistNameString)
+        private IReadOnlyList<string> ParseArtistNames(string artistNameString)
         {
             string[] names;
             if (artistNameString.Contains(","))
@@ -231,7 +296,7 @@ namespace MusicScream.Utilities
 
             var parsedNames = names.Select(HandleNameWithParenthesis);
 
-            return parsedNames;
+            return parsedNames.ToList();
         }
 
         private string HandleNameWithParenthesis(string name)

@@ -18,6 +18,9 @@ namespace MusicScream.Models
         public DbSet<Playlist> Playlists { get; set; }
         public DbSet<SongPlaylistLink> SongPlaylistLinks { get; set; }
 
+        public DbSet<Album> Albums { get; set; }
+        public DbSet<AlbumSongLink> AlbumSongLinks { get; set; }
+
         public MusicScreamContext(DbContextOptions<MusicScreamContext> options) : base(options)
         {
         }
@@ -82,6 +85,16 @@ namespace MusicScream.Models
 
             modelBuilder.Entity<AlbumSongLink>()
                 .HasKey(_ => new {_.AlbumId, _.SongId});
+
+            modelBuilder.Entity<AlbumSongLink>()
+                .HasOne(asl => asl.Album)
+                .WithMany(al => al.AlbumSongLinks)
+                .HasForeignKey(asl => asl.AlbumId);
+
+            modelBuilder.Entity<AlbumSongLink>()
+                .HasOne(asl => asl.Song)
+                .WithMany(s => s.AlbumSongLinks)
+                .HasForeignKey(asl => asl.SongId);
         }
 
         private void SetSchemaForAllDbSets(ModelBuilder modelBuilder)
