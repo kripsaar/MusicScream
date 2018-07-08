@@ -113,6 +113,10 @@ namespace MusicScream.Utilities
             else
                 album = await CreateAlbum(rawAlbumName, artists);
 
+            // Find show
+
+            var products = await _vgmdbLookupHandler.FindProductsForAlbum(album.VgmdbLink);
+
             // Find proper song title(s) from album
 
             var titleAndAliases = await _vgmdbLookupHandler.FindSongTitleAndAliases(rawTitle, album.VgmdbLink);

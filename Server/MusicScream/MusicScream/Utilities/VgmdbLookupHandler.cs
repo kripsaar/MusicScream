@@ -345,6 +345,57 @@ namespace MusicScream.Utilities
             return (title, aliases);
         }
 
+        public async Task<IEnumerable<Product>> FindProductsForAlbum(string albumLink)
+        {
+            if (string.IsNullOrEmpty(albumLink))
+                return new List<Product>();
+            var albumPage = await GetAlbumPageInfo(albumLink);
+            var products = new List<Product>();
+            foreach (var albumProduct in albumPage.Products)
+            {
+                var productPage = await GetProductPage(albumProduct.Link);
+                string title;
+                var aliases = new List<string>();
+                if (albumProduct.Names.Ja != null)
+                {
+                    title = albumProduct.Names.Ja;
+                    if (albumProduct.Names.Ja_Latn != null)
+                        aliases.Add(albumProduct.Names.Ja_Latn);
+                    if (albumProduct.Names.En != null)
+                        aliases.Add(albumProduct.Names.En);
+                }
+                else if (albumProduct.Names.Ja_Latn != null)
+                {
+                    title = albumProduct.Names.Ja_Latn;
+                    if (albumProduct.Names.En != null)
+                        aliases.Add(albumProduct.Names.En);
+                }
+                else
+                {
+                    title = albumProduct.Names.En;
+                }
+
+                var year = productPage.Release_Date != null ? Int32.Parse(productPage.Release_Date.Substring(0, 4)) : 0;
+                var product = new Product
+                {
+                    Title = title,
+                    Aliases = aliases.Distinct().ToArray(),
+                    Year = year
+                };
+                products.Add(product);
+            }
+
+            return products;
+        }
+
+        private async Task<ProductPageResult> GetProductPage(string productLink)
+        {
+            var requestUrl = GetPageUrl(productLink);
+            var response = await _httpClient.GetStringAsync(requestUrl);
+            var productPage = JObject.Parse(response).ToObject<ProductPageResult>();
+            return productPage;
+        }
+
         private class SearchResults
         {
             public IEnumerable<ArtistSearchResults> Artists { get; set; }
@@ -414,6 +465,7 @@ namespace MusicScream.Utilities
             public IEnumerable<ArtistShortResult> Performers { get; set; }
             public IEnumerable<DiscResult> Discs { get; set; }
             public string Release_Date { get; set; }
+            public IEnumerable<ProductResult> Products { get; set; }
         }
 
         private class DiscResult
@@ -434,6 +486,20 @@ namespace MusicScream.Utilities
             public string English { get; set; }
             public string Japanese { get; set; }
             public string Romaji { get; set; }
+        }
+
+        private class ProductResult
+        {
+            public string Link { get; set; }
+            public NamesResult Names { get; set; }
+        }
+
+        private class ProductPageResult
+        {
+            public string Link { get; set; }
+            public string Name { get; set; }
+            public string Name_Real { get; set; }
+            public string Release_Date { get; set; }
         }
     }
 }
