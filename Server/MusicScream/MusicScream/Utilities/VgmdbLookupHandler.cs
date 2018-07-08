@@ -146,7 +146,7 @@ namespace MusicScream.Utilities
                     VgmdbLink = "",
                     Aliases = new string[0]
                 };
-            return await GetAlbumFromAlbumLink(albumLink);
+            return await GetAlbumFromAlbumLink(albumName, albumLink);
         }
 
         public async Task<Album> FindAlbumFromArtistDiscography(string albumName, string artistLink)
@@ -161,16 +161,16 @@ namespace MusicScream.Utilities
             var artistResult = await GetArtistPageInfo(artistLink);
             var discographyResult = artistResult.Discography;
             var albumLink = FindClosestAlbumNameMatchLink(cleanAlbumName, discographyResult);
-            return await GetAlbumFromAlbumLink(albumLink);
+            return await GetAlbumFromAlbumLink(albumName, albumLink);
         }
 
-        public async Task<Album> GetAlbumFromAlbumLink(string albumLink)
+        public async Task<Album> GetAlbumFromAlbumLink(string albumName, string albumLink)
         {
             var albumPage = await GetAlbumPageInfo(albumLink);
             if (albumPage == null)
                 return null;
             string name;
-            var aliases = new List<string>();
+            var aliases = new List<string> {albumName};
             var enNames = SeparateAlbumArtistNames(albumPage.Names.En);
             if (albumPage.Names.Ja != null)
             {
@@ -197,8 +197,8 @@ namespace MusicScream.Utilities
             }
 
             var releaseDate = albumPage.Release_Date != null
-                ? LocalDatePattern.CreateWithCurrentCulture("yyyy-MM-dd").Parse(albumPage.Release_Date).Value
-                : LocalDate.MinIsoValue;
+                ? InstantPattern.CreateWithCurrentCulture("yyyy-MM-dd").Parse(albumPage.Release_Date).Value
+                : Instant.MinValue;
             var album = new Album
             {
                 Title = name,

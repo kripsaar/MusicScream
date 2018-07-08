@@ -11,7 +11,7 @@ namespace MusicScream.Models
         public int Id { get; set; }
         public string Title { get; set; }
         public string[] Aliases { get; set; }
-        public LocalDate ReleaseDate { get; set; }
+        public Instant ReleaseDate { get; set; }
         public string VgmdbLink { get; set; }
         public IEnumerable<AlbumSongLink> AlbumSongLinks { get; set; }
         public IEnumerable<ArtistAlbumLink> ArtistAlbumLinks { get; set; }

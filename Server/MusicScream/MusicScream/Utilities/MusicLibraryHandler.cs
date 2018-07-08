@@ -90,35 +90,39 @@ namespace MusicScream.Utilities
             TagLib.File file = TagLib.File.Create(filename);
             if (!(file.MimeType == "audio/mpeg" || file.MimeType == "taglib/mp3"))
                 return;
-            var title = file.Tag.Title.Trim();
+            var rawTitle = file.Tag.Title.Trim();
             var rawArtistName = file.Tag.FirstPerformer.Trim();
-            var artistNames = ParseArtistNames(rawArtistName);
-            var albumName = file.Tag.Album.Trim();
-            if (CheckIfSongExists(title, artistNames))
+            var rawArtistNames = ParseArtistNames(rawArtistName);
+            var rawAlbumName = file.Tag.Album.Trim();
+            if (CheckIfSongExists(rawTitle, rawArtistNames))
                 return;
 
-            foreach (var artistName in artistNames)
+            foreach (var artistName in rawArtistNames)
             {
                 if (!CheckIfArtistExists(artistName))
                     await CreateArtist(artistName);
             }
 
-            var artists = FindArtistsWithNames(artistNames);
+            var artists = FindArtistsWithNames(rawArtistNames);
 
             // Create album
 
-            var album = await CreateAlbumAndLinkToArtist(albumName, artists);
+            Album album;
+            if (CheckIfAlbumExists(rawAlbumName, artists))
+                album = FindAlbumWithTitleAndArtists(rawAlbumName, artists);
+            else
+                album = await CreateAlbum(rawAlbumName, artists);
 
             // Find proper song title(s) from album
 
-            var titleAndAliases = await _vgmdbLookupHandler.FindSongTitleAndAliases(title, album.VgmdbLink);
+            var titleAndAliases = await _vgmdbLookupHandler.FindSongTitleAndAliases(rawTitle, album.VgmdbLink);
 
             // Create song
 
             var song = new Song
             {
                 Title = titleAndAliases.songTitle,
-                Aliases = titleAndAliases.aliases.ToArray(),
+                Aliases = titleAndAliases.aliases.Append(rawTitle).Distinct().ToArray(),
                 Album = album.Title,
                 Genre = file.Tag.FirstGenre,
                 Year = file.Tag.Year,
@@ -131,13 +135,14 @@ namespace MusicScream.Utilities
 
             CreateArtistSongLinks(artists, song);
             CreateAlbumSongLink(album, song);
+            CreateArtistAlbumLinks(artists, album);
 
-            // TODO: Deal with duplicates
+            // TODO: Next stuff, like genre or something
         }
 
         private bool CheckIfSongExists(string title, IReadOnlyList<string> artistNames)
         {
-            var songs = _dbContext.Songs.Where(_ => _.Title == title);
+            var songs = _dbContext.Songs.Where(_ => _.Title == title || _.Aliases.Contains(title));
             foreach (var song in songs)
             {
                 if (song.ArtistSongLinks == null)
@@ -147,6 +152,21 @@ namespace MusicScream.Utilities
                 ))
                     return true;
             }
+            return false;
+        }
+
+        private bool CheckIfAlbumExists(string title, IReadOnlyList<Artist> artists)
+        {
+            var albums = _dbContext.Albums.Where(album => album.Title == title || album.Aliases.Contains(title));
+            foreach (var album in albums)
+            {
+                if (album.ArtistAlbumLinks == null)
+                    return true;
+                if (album.ArtistAlbumLinks.Any(artistAlbumLink =>
+                    artists.Any(artist => artist.Id == artistAlbumLink.ArtistId)))
+                    return true;
+            }
+
             return false;
         }
 
@@ -193,6 +213,8 @@ namespace MusicScream.Utilities
         {
             foreach (var artist in artists)
             {
+                if (_dbContext.ArtistSongLinks.Any(_ => _.SongId == song.Id && _.ArtistId == artist.Id))
+                    continue;
                 var artistSongLink = new ArtistSongLink
                 {
                     ArtistId = artist.Id,
@@ -204,7 +226,7 @@ namespace MusicScream.Utilities
             _dbContext.SaveChanges();
         }
 
-        private async Task<Album> CreateAlbumAndLinkToArtist(string albumName, IReadOnlyList<Artist> artists)
+        private async Task<Album> CreateAlbum(string albumName, IReadOnlyList<Artist> artists)
         {
             Album album;
             var firstArtist = artists.FirstOrDefault();
@@ -226,9 +248,6 @@ namespace MusicScream.Utilities
                 Console.WriteLine(e);
             }
 
-            // Create album artist link
-            CreateArtistAlbumLinks(artists, album);
-
             return album;
         }
 
@@ -236,6 +255,8 @@ namespace MusicScream.Utilities
         {
             foreach (var artist in artists)
             {
+                if (_dbContext.ArtistAlbumLinks.Any(_ => _.ArtistId == artist.Id && _.AlbumId == album.Id))
+                    continue;
                 var artistAlbumLink = new ArtistAlbumLink
                 {
                     AlbumId = album.Id,
@@ -249,6 +270,8 @@ namespace MusicScream.Utilities
 
         private void CreateAlbumSongLink(Album album, Song song)
         {
+            if (_dbContext.AlbumSongLinks.Any(_ => _.AlbumId == album.Id && _.SongId == song.Id))
+                return;
             var albumSongLink = new AlbumSongLink
             {
                 AlbumId = album.Id,
@@ -272,6 +295,13 @@ namespace MusicScream.Utilities
         {
             var artists = _dbContext.Artists.Where(_ => _.Name == name || _.Aliases.Contains(name)).ToList();
             return artists;
+        }
+
+        private Album FindAlbumWithTitleAndArtists(string title, IReadOnlyList<Artist> artists)
+        {
+            var albums = _dbContext.Albums.Where(album => album.Title == title || album.Aliases.Contains(title));
+            var artistAlbumLinks = artists.SelectMany(_ => _.ArtistAlbumLinks);
+            return albums.FirstOrDefault(album => album.ArtistAlbumLinks.Intersect(artistAlbumLinks).Any());
         }
 
         private bool CheckIfArtistExists(string artistName)
