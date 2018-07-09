@@ -10,10 +10,10 @@ namespace MusicScream.Models
         public int Id { get; set; }
         public string Name { get; set; }
         public string[] Aliases { get; set; }
-        public IEnumerable<ArtistAlbumLink> ArtistAlbumLinks { get; set; }
+        public string VgmdbLink { get; set; }
+        public IEnumerable<ArtistAlbumLink> AlbumLinks { get; set; }
         public IEnumerable<ArtistUnitLink> ArtistUnitLinks { get; set; }
         public IEnumerable<ArtistUnitLink> UnitArtistLinks { get; set; }
-        public IEnumerable<ArtistSongLink> ArtistSongLinks { get; set; }
-        public string VgmdbLink { get; set; }
+        public IEnumerable<ArtistSongLink> SongLinks { get; set; }
     }
 }

@@ -10,12 +10,14 @@ namespace MusicScream.Models
         public int Id { get; set; }
         public string Title { get; set; }
         public string[] Aliases { get; set; }
-        public string Album { get; set; }
         public uint Year { get; set; }
-        public string Genre { get; set; }
         public string Filename { get; set; }
-        public IEnumerable<SongPlaylistLink> SongPlaylistLinks { get; set; }
-        public IEnumerable<ArtistSongLink> ArtistSongLinks { get; set; }
-        public IEnumerable<AlbumSongLink> AlbumSongLinks { get; set; }
+
+        public IEnumerable<SongPlaylistLink> PlaylistLinks { get; set; }
+        public IEnumerable<ArtistSongLink> ArtistLinks { get; set; }
+        public IEnumerable<AlbumSongLink> AlbumLinks { get; set; }
+        public IEnumerable<SongGenreLink> GenreLinks { get; set; }
+        public IEnumerable<ProductSongLink> ProductLinks { get; set; }
+        public IEnumerable<SeasonSongLink> SeasonLinks { get; set; }
     }
 }

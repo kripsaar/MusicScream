@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using MusicScream.Models;
+using NodaTime;
 
 namespace MusicScream.Utilities
 {
@@ -94,6 +95,7 @@ namespace MusicScream.Utilities
             var rawArtistName = file.Tag.FirstPerformer.Trim();
             var rawArtistNames = ParseArtistNames(rawArtistName);
             var rawAlbumName = file.Tag.Album.Trim();
+            var rawGenres = file.Tag.Genres;
             if (CheckIfSongExists(rawTitle, rawArtistNames))
                 return;
 
@@ -111,25 +113,19 @@ namespace MusicScream.Utilities
             if (CheckIfAlbumExists(rawAlbumName, artists))
                 album = FindAlbumWithTitleAndArtists(rawAlbumName, artists);
             else
-                album = await CreateAlbum(rawAlbumName, artists);
-
-            // Find show
-
-            var products = await _vgmdbLookupHandler.FindProductsForAlbum(album.VgmdbLink);
+                album = await CreateAlbum(rawAlbumName, artists, rawGenres);
 
             // Find proper song title(s) from album
 
-            var titleAndAliases = await _vgmdbLookupHandler.FindSongTitleAndAliases(rawTitle, album.VgmdbLink);
+            var (songtitle, aliases) = await _vgmdbLookupHandler.FindSongTitleAndAliases(rawTitle, album.VgmdbLink);
 
             // Create song
 
             var song = new Song
             {
-                Title = titleAndAliases.songTitle,
-                Aliases = titleAndAliases.aliases.Append(rawTitle).Distinct().ToArray(),
-                Album = album.Title,
-                Genre = file.Tag.FirstGenre,
-                Year = file.Tag.Year,
+                Title = songtitle,
+                Aliases = aliases.Append(rawTitle).Distinct().ToArray(),
+                Year = (uint) album.ReleaseDate.ToDateTimeUtc().Year,
                 Filename = filename
             };
             _dbContext.Add(song);
@@ -137,11 +133,63 @@ namespace MusicScream.Utilities
 
             // Create song links
 
+            // ReSharper disable once PossibleNullReferenceException
+            if (_dbContext.Albums.Include(_ => _.ProductLinks).ThenInclude(_ => _.Product)
+                .FirstOrDefault(_ => _.Id == album.Id).ProductLinks.Any(_ => _.Product.Type == Product.Animation))
+                CreateSeasonSongLinks(song, album.ReleaseDate);
+
             CreateArtistSongLinks(artists, song);
             CreateAlbumSongLink(album, song);
-            CreateArtistAlbumLinks(artists, album);
+            CreateSongGenreLinks(song, album);
+            CreateProductSongLinks(song, album);
+        }
 
-            // TODO: Next stuff, like genre or something
+        private void CreateSeasonSongLinks(Song song, Instant releaseDate)
+        {
+            var season = ResolveSeason(releaseDate);
+            var seasonSongLink = new SeasonSongLink
+            {
+                SeasonId = season.Id,
+                SongId = song.Id
+            };
+            _dbContext.Add(seasonSongLink);
+            _dbContext.SaveChanges();
+        }
+
+        private void CreateProductSongLinks(Song song, Album album)
+        {
+            var productSongLinks = _dbContext.ProductSongLinks.ToList();
+            foreach (var productAlbumLink in album.ProductLinks)
+            {
+                if (productSongLinks.Any(_ =>
+                    _.SongId == song.Id && _.ProductId == productAlbumLink.ProductId))
+                    continue;
+                var productSongLink = new ProductSongLink
+                {
+                    ProductId = productAlbumLink.ProductId,
+                    SongId = song.Id
+                };
+                _dbContext.Add(productSongLink);
+                _dbContext.SaveChanges();
+            }
+        }
+
+        private void CreateSongGenreLinks(Song song, Album album)
+        {
+            var songGenreLinks = _dbContext.SongGenreLinks.ToList();
+            foreach (var genreLink in album.GenreLinks)
+            {
+                var genreId = genreLink.GenreId;
+                if (songGenreLinks.Any(_ => _.SongId == song.Id && _.GenreId == genreId))
+                    continue;
+                var songGenreLink = new SongGenreLink
+                {
+                    SongId = song.Id,
+                    GenreId = genreId
+                };
+                _dbContext.Add(songGenreLink);
+                _dbContext.SaveChanges();
+            }
         }
 
         private bool CheckIfSongExists(string title, IReadOnlyList<string> artistNames)
@@ -149,9 +197,9 @@ namespace MusicScream.Utilities
             var songs = _dbContext.Songs.Where(_ => _.Title == title || _.Aliases.Contains(title));
             foreach (var song in songs)
             {
-                if (song.ArtistSongLinks == null)
+                if (song.ArtistLinks == null)
                     return true;
-                if (song.ArtistSongLinks.Any(_ =>
+                if (song.ArtistLinks.Any(_ =>
                     artistNames.Contains(_.Artist.Name) || _.Artist.Aliases.Intersect(artistNames).Any()
                 ))
                     return true;
@@ -164,9 +212,9 @@ namespace MusicScream.Utilities
             var albums = _dbContext.Albums.Where(album => album.Title == title || album.Aliases.Contains(title));
             foreach (var album in albums)
             {
-                if (album.ArtistAlbumLinks == null)
+                if (album.ArtistLinks == null)
                     return true;
-                if (album.ArtistAlbumLinks.Any(artistAlbumLink =>
+                if (album.ArtistLinks.Any(artistAlbumLink =>
                     artists.Any(artist => artist.Id == artistAlbumLink.ArtistId)))
                     return true;
             }
@@ -215,9 +263,10 @@ namespace MusicScream.Utilities
 
         private void CreateArtistSongLinks(IReadOnlyList<Artist> artists, Song song)
         {
+            var artistSongLinks = _dbContext.ArtistSongLinks.ToList();
             foreach (var artist in artists)
             {
-                if (_dbContext.ArtistSongLinks.Any(_ => _.SongId == song.Id && _.ArtistId == artist.Id))
+                if (artistSongLinks.Any(_ => _.SongId == song.Id && _.ArtistId == artist.Id))
                     continue;
                 var artistSongLink = new ArtistSongLink
                 {
@@ -230,7 +279,7 @@ namespace MusicScream.Utilities
             _dbContext.SaveChanges();
         }
 
-        private async Task<Album> CreateAlbum(string albumName, IReadOnlyList<Artist> artists)
+        private async Task<Album> CreateAlbum(string albumName, IReadOnlyList<Artist> artists, IReadOnlyList<string> genres)
         {
             Album album;
             var firstArtist = artists.FirstOrDefault();
@@ -241,25 +290,120 @@ namespace MusicScream.Utilities
             else
                 album = await _vgmdbLookupHandler.FindAlbumFromSearch(albumName);
 
+            // Double check if album exists
+
+            if (_dbContext.Albums.Any(_ => _.VgmdbLink == album.VgmdbLink))
+                return _dbContext.Albums.FirstOrDefault(_ => _.VgmdbLink == album.VgmdbLink);
+
             // Adds album to DB context
             _dbContext.Add(album);
-            try
-            {
-                _dbContext.SaveChanges();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
+            _dbContext.SaveChanges();
+
+            // Create Artist-Album links
+            CreateArtistAlbumLinks(artists, album);
+
+            // Create Product-Album links
+            await CreateProductAlbumLinks(album);
+
+            // Create Season-Product links if necessary
+            CreateSeasonProductLinks(album);
+
+            // Create Album-Genre links
+            CreateAlbumGenreLinks(album, genres);
 
             return album;
         }
 
+        private void CreateSeasonProductLinks(Album album)
+        {
+            var season = ResolveSeason(album.ReleaseDate);
+
+            var yes = album.ProductLinks;
+            var albumProducts = album.ProductLinks.Select(_ => _.Product);
+//            var albumProducts = _dbContext.ProductAlbumLinks.Where(_ => _.AlbumId == album.Id).Select(_ => _.Product);
+            var seasonProductLinks = _dbContext.SeasonProductLinks.ToList();
+            foreach (var product in albumProducts)
+            {
+                if (product.Type != Product.Animation || seasonProductLinks.Any(_ => _.ProductId == product.Id && _.SeasonId == season.Id))
+                    continue;
+                var seasonProductLink = new SeasonProductLink
+                {
+                    ProductId = product.Id,
+                    SeasonId = season.Id
+                };
+                _dbContext.Add(seasonProductLink);
+                _dbContext.SaveChanges();
+            }
+        }
+
+        private void CreateAlbumGenreLinks(Album album, IReadOnlyList<string> genres)
+        {
+            var albumGenreLinks = _dbContext.AlbumGenreLinks.ToList();
+            foreach (var genreName in genres)
+            {
+                var genre = _dbContext.Genres.FirstOrDefault(_ => _.Name == genreName);
+                if (genre == null)
+                {
+                    genre = new Genre
+                    {
+                        Name = genreName
+                    };
+                    _dbContext.Add(genre);
+                    _dbContext.SaveChanges();
+                }
+
+                if (albumGenreLinks.Any(_ => _.AlbumId == album.Id && _.GenreId == genre.Id))
+                    continue;
+
+                var albumGenreLink = new AlbumGenreLink
+                {
+                    AlbumId = album.Id,
+                    GenreId = genre.Id
+                };
+                _dbContext.Add(albumGenreLink);
+                _dbContext.SaveChanges();
+            }
+
+        }
+
+        private async Task CreateProductAlbumLinks(Album album)
+        {
+            var products = await _vgmdbLookupHandler.FindProductsForAlbum(album.VgmdbLink);
+
+            foreach (var product in products)
+            {
+                var dbProduct = _dbContext.Products.FirstOrDefault(_ => _.VgmdbLink == product.VgmdbLink);
+                if (dbProduct != null)
+                {
+                    CreateProductAlbumLink(dbProduct, album);
+                    continue;
+                }
+
+                _dbContext.Add(product);
+                _dbContext.SaveChanges();
+                CreateProductAlbumLink(product, album);
+            }
+        }
+
+        private void CreateProductAlbumLink(Product product, Album album)
+        {
+            if (_dbContext.ProductAlbumLinks.Any(_ => _.ProductId == product.Id && _.AlbumId == album.Id))
+                return;
+            var productAlbumLink = new ProductAlbumLink
+            {
+                ProductId = product.Id,
+                AlbumId = album.Id
+            };
+            _dbContext.Add(productAlbumLink);
+            _dbContext.SaveChanges();
+        }
+
         private void CreateArtistAlbumLinks(IReadOnlyList<Artist> artists, Album album)
         {
+            var artistAlbumLinks = _dbContext.ArtistAlbumLinks.ToList();
             foreach (var artist in artists)
             {
-                if (_dbContext.ArtistAlbumLinks.Any(_ => _.ArtistId == artist.Id && _.AlbumId == album.Id))
+                if (artistAlbumLinks.Any(_ => _.ArtistId == artist.Id && _.AlbumId == album.Id))
                     continue;
                 var artistAlbumLink = new ArtistAlbumLink
                 {
@@ -297,15 +441,19 @@ namespace MusicScream.Utilities
 
         private List<Artist> FindArtistsWithName(string name)
         {
-            var artists = _dbContext.Artists.Where(_ => _.Name == name || _.Aliases.Contains(name)).ToList();
+            var artists = _dbContext.Artists.Where(_ => _.Name == name || _.Aliases.Contains(name))
+                .Include(_ => _.AlbumLinks)
+                .Include(_ => _.ArtistUnitLinks)
+                .Include(_ => _.UnitArtistLinks)
+                .ToList();
             return artists;
         }
 
         private Album FindAlbumWithTitleAndArtists(string title, IReadOnlyList<Artist> artists)
         {
-            var albums = _dbContext.Albums.Where(album => album.Title == title || album.Aliases.Contains(title));
-            var artistAlbumLinks = artists.SelectMany(_ => _.ArtistAlbumLinks);
-            return albums.FirstOrDefault(album => album.ArtistAlbumLinks.Intersect(artistAlbumLinks).Any());
+            var albums = _dbContext.Albums.Where(album => album.Title == title || album.Aliases.Contains(title)).Include(_ => _.GenreLinks).Include(_ => _.ArtistLinks);
+            var artistAlbumLinks = artists.SelectMany(_ => _.AlbumLinks);
+            return albums.FirstOrDefault(album => album.ArtistLinks.Intersect(artistAlbumLinks).Any());
         }
 
         private bool CheckIfArtistExists(string artistName)
@@ -365,6 +513,35 @@ namespace MusicScream.Utilities
             }
 
             return mainName;
+        }
+
+        private Season ResolveSeason(Instant releaseDate)
+        {
+            var year = releaseDate.InUtc().Year;
+            var month = releaseDate.InUtc().Month;
+            string seasonPrefix;
+            if (month < 4)
+                seasonPrefix = "Winter";
+            else if (month < 7)
+                seasonPrefix = "Spring";
+            else if (month < 10)
+                seasonPrefix = "Summer";
+            else
+                seasonPrefix = "Autumn";
+            var season = new Season
+            {
+                Year = year,
+                Name = seasonPrefix + " " + year
+            };
+
+            var dbSeason = _dbContext.Seasons.FirstOrDefault(_ => _.Name == season.Name);
+            if (dbSeason != null)
+                return dbSeason;
+
+            _dbContext.Add(season);
+            _dbContext.SaveChanges();
+
+            return season;
         }
 
         public class SongData

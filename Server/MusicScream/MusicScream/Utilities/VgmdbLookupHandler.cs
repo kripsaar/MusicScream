@@ -197,7 +197,7 @@ namespace MusicScream.Utilities
             }
 
             var releaseDate = albumPage.Release_Date != null
-                ? InstantPattern.CreateWithCurrentCulture("yyyy-MM-dd").Parse(albumPage.Release_Date).Value
+                ? InstantPattern.CreateWithInvariantCulture("yyyy-MM-dd").Parse(albumPage.Release_Date).Value
                 : Instant.MinValue;
             var album = new Album
             {
@@ -356,6 +356,19 @@ namespace MusicScream.Utilities
                 var productPage = await GetProductPage(albumProduct.Link);
                 string title;
                 var aliases = new List<string>();
+                string type;
+                switch (productPage.Type)
+                {
+                    case "Video":
+                        type = Product.Animation;
+                        break;
+                    case "Game":
+                        type = Product.Game;
+                        break;
+                    default:
+                        type = Product.Other;
+                        break;
+                }
                 if (albumProduct.Names.Ja != null)
                 {
                     title = albumProduct.Names.Ja;
@@ -380,7 +393,8 @@ namespace MusicScream.Utilities
                 {
                     Title = title,
                     Aliases = aliases.Distinct().ToArray(),
-                    Year = year
+                    Year = year,
+                    Type = type
                 };
                 products.Add(product);
             }
@@ -500,6 +514,7 @@ namespace MusicScream.Utilities
             public string Name { get; set; }
             public string Name_Real { get; set; }
             public string Release_Date { get; set; }
+            public string Type { get; set; }
         }
     }
 }

@@ -29,9 +29,9 @@ namespace MusicScream.Controllers
                 {
                     song.Id,
                     song.Title,
-                    Artist = song.ArtistSongLinks.FirstOrDefault()?.Artist.Name ?? "Unknown Artist",
-                    song.Album,
-                    song.Genre,
+                    Artist = song.ArtistLinks.Any() ? String.Join(", ", song.ArtistLinks.Select(_ => _.Artist.Name)) : "Unknown Artist",
+                    Album = song.AlbumLinks.Any() ? String.Join(", ", song.AlbumLinks.Select(_ => _.Album.Title)) : "Unknown Album",
+                    Genre = song.GenreLinks.Any() ? String.Join(", ", song.GenreLinks.Select(_ => _.Genre.Name)) : "Unknown Genre",
                     song.Year
                 }
             }));
@@ -45,9 +45,9 @@ namespace MusicScream.Controllers
                 {
                     song.Id,
                     song.Title,
-                    Artist = song.ArtistSongLinks.Any() ? String.Join(", ", song.ArtistSongLinks.Select(_ => _.Artist.Name)) : "Unknown Artist",
-                    song.Album,
-                    song.Genre,
+                    Artist = song.ArtistLinks.Any() ? String.Join(", ", song.ArtistLinks.Select(_ => _.Artist.Name)) : "Unknown Artist",
+                    Album = song.AlbumLinks.Any() ? String.Join(", ", song.AlbumLinks.Select(_ => _.Album.Title)) : "Unknown Album",
+                    Genre = song.GenreLinks.Any() ? String.Join(", ", song.GenreLinks.Select(_ => _.Genre.Name)) : "Unknown Genre",
                     song.Year
                 })
             }));
@@ -55,7 +55,11 @@ namespace MusicScream.Controllers
 
         public IActionResult GetAllSongs()
         {
-            return SongsToJson(_dbContext.Songs.Include(_ => _.ArtistSongLinks).ThenInclude(_ => _.Artist));
+            return SongsToJson(_dbContext.Songs
+                .Include(_ => _.ArtistLinks).ThenInclude(_ => _.Artist)
+                .Include(_ => _.AlbumLinks).ThenInclude(_ => _.Album)
+                .Include(_ => _.GenreLinks).ThenInclude(_ => _.Genre)
+            );
         }
 
         public IActionResult GetSong(int songId)
