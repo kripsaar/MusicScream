@@ -289,34 +289,56 @@ namespace MusicScream.Utilities
         private async Task<Album> CreateAlbum(string albumName, IReadOnlyList<Artist> artists, IReadOnlyList<string> genres)
         {
             Album album;
-            var firstArtist = artists.FirstOrDefault();
-            if (!string.IsNullOrEmpty(firstArtist?.VgmdbLink))
+            if (albumName == "" || albumName == "Single")
             {
-                 album = await _vgmdbLookupHandler.FindAlbumFromArtistDiscography(albumName, firstArtist.VgmdbLink);
+                var unknownAlbum = _dbContext.Albums.FirstOrDefault(_ => _.Title == "Unknown Album");
+                if (unknownAlbum == null)
+                {
+                    unknownAlbum = new Album
+                    {
+                        Title = "Unknown Album",
+                        Aliases = new string[0],
+                        ReleaseDate = Instant.MinValue,
+                        VgmdbLink = ""
+                    };
+                    _dbContext.Add(unknownAlbum);
+                    _dbContext.SaveChanges();
+                }
+                album = unknownAlbum;
             }
             else
-                album = await _vgmdbLookupHandler.FindAlbumFromSearch(albumName);
+            {
+                var firstArtist = artists.FirstOrDefault();
+                if (!string.IsNullOrEmpty(firstArtist?.VgmdbLink))
+                {
+                    album = await _vgmdbLookupHandler.FindAlbumFromArtistDiscography(albumName, firstArtist.VgmdbLink);
+                }
+                else
+                    album = await _vgmdbLookupHandler.FindAlbumFromSearch(albumName);
+            }
 
             // Double check if album exists
 
-            if (_dbContext.Albums.Any(_ => _.VgmdbLink == album.VgmdbLink))
-                return _dbContext.Albums.FirstOrDefault(_ => _.VgmdbLink == album.VgmdbLink);
+            if (_dbContext.Albums.Any(_ => _.Title == album.Title && _.VgmdbLink == album.VgmdbLink))
+                album = _dbContext.Albums.FirstOrDefault(_ => _.Title == album.Title && _.VgmdbLink == album.VgmdbLink);
+            else
+            {
+                // Adds album to DB context
+                _dbContext.Add(album);
+                _dbContext.SaveChanges();
 
-            // Adds album to DB context
-            _dbContext.Add(album);
-            _dbContext.SaveChanges();
+                // Create Product-Album links
+                await CreateProductAlbumLinks(album);
+
+                // Create Season-Product links if necessary
+                CreateSeasonProductLinks(album);
+
+                // Create Album-Genre links
+                CreateAlbumGenreLinks(album, genres);
+            }
 
             // Create Artist-Album links
             CreateArtistAlbumLinks(artists, album);
-
-            // Create Product-Album links
-            await CreateProductAlbumLinks(album);
-
-            // Create Season-Product links if necessary
-            CreateSeasonProductLinks(album);
-
-            // Create Album-Genre links
-            CreateAlbumGenreLinks(album, genres);
 
             return album;
         }
