@@ -194,7 +194,7 @@ namespace MusicScream.Utilities
 
         private bool CheckIfSongExists(string title, IReadOnlyList<string> artistNames)
         {
-            var songs = _dbContext.Songs.Where(_ => _.Title == title || _.Aliases.Contains(title));
+            var songs = _dbContext.Songs.Include(_ => _.ArtistLinks).ThenInclude(_ => _.Artist).Where(_ => _.Title == title || _.Aliases.Contains(title));
             foreach (var song in songs)
             {
                 if (song.ArtistLinks == null)
