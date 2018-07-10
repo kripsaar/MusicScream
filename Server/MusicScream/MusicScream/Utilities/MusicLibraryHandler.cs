@@ -36,14 +36,28 @@ namespace MusicScream.Utilities
             return songData;
         }
 
-        public SongData GetAlbumArt(int songId)
+        public async Task<SongData> GetAlbumArt(int songId)
         {
             var filename = _dbContext.Songs.FirstOrDefault(song => song.Id == songId)?.Filename;
             if (filename == null)
                 return null;
             var file = TagLib.File.Create(filename);
             if (file.Tag.Pictures.Length < 1)
-                return null;
+            {
+                var albumSongLink = _dbContext.AlbumSongLinks.Include(_ => _.Album).FirstOrDefault(_ => _.SongId == songId);
+                if (albumSongLink == null)
+                    return null;
+                var (dbArtData, dbArtMimeType) = await _vgmdbLookupHandler.GetAlbumArt(albumSongLink.Album.VgmdbLink);
+                if (dbArtData == null || dbArtMimeType == null)
+                    return null;
+                var picture = new TagLib.Picture(new TagLib.ByteVector(dbArtData));
+                var pictureFrame =
+                    new TagLib.Id3v2.AttachedPictureFrame(picture) {Type = TagLib.PictureType.FrontCover};
+                TagLib.IPicture[] frames = {pictureFrame};
+                file.Tag.Pictures = frames;
+                file.Save();
+            }
+
             var art = file.Tag.Pictures[0];
             var songData = new SongData(art.MimeType, art.Data.Data);
             return songData;

@@ -69,9 +69,9 @@ namespace MusicScream.Controllers
             return fileResult;
         }
 
-        public IActionResult GetAlbumArt(int songId)
+        public async Task<IActionResult> GetAlbumArt(int songId)
         {
-            var songData = _libraryHandler.GetAlbumArt(songId);
+            var songData = await _libraryHandler.GetAlbumArt(songId);
             if (songData == null)
                 return Ok();
             return new FileContentResult(songData.Data, songData.MimeType);

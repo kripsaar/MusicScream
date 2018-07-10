@@ -112,6 +112,15 @@ namespace MusicScream.Utilities
             return albumResponse;
         }
 
+        public async Task<(byte[] data, string mimeType)> GetAlbumArt(string albumLink)
+        {
+            var albumPage = await GetAlbumPageInfo(albumLink);
+            if (albumPage.Picture_Full == null)
+                return (null, null);
+            var response = await _httpClient.GetAsync(albumPage.Picture_Full);
+            return (await response.Content.ReadAsByteArrayAsync(), response.Content.Headers.ContentType.MediaType);
+        }
+
         public async Task<string> FindAlbumPage(string albumName)
         {
             try
@@ -480,6 +489,7 @@ namespace MusicScream.Utilities
             public IEnumerable<DiscResult> Discs { get; set; }
             public string Release_Date { get; set; }
             public IEnumerable<ProductResult> Products { get; set; }
+            public string Picture_Full { get; set; }
         }
 
         private class DiscResult
