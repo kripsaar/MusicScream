@@ -502,6 +502,10 @@ namespace MusicScream.Utilities
             {
                 names = artistNameString.Split("、");
             }
+            else if (artistNameString.Contains("starring"))
+            {
+                names = artistNameString.Split("starring");
+            }
             else
                 return new[] {HandleNameWithParenthesis(artistNameString)};
 
