@@ -37,6 +37,7 @@ export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
 
     public componentDidMount()
     {
+        this.getSongList();
         this.refreshLibrary();
     }
 
