@@ -208,17 +208,10 @@ namespace MusicScream.Utilities
 
         private bool CheckIfSongExists(string title, IReadOnlyList<string> artistNames)
         {
-            var songs = _dbContext.Songs.Include(_ => _.ArtistLinks).ThenInclude(_ => _.Artist).Where(_ => _.Title == title || _.Aliases.Contains(title));
-            foreach (var song in songs)
-            {
-                if (song.ArtistLinks == null)
-                    return true;
-                if (song.ArtistLinks.Any(_ =>
-                    artistNames.Contains(_.Artist.Name) || _.Artist.Aliases.Intersect(artistNames).Any()
-                ))
-                    return true;
-            }
-            return false;
+            var song = _dbContext.Songs.Include(_ => _.ArtistLinks).ThenInclude(_ => _.Artist)
+                .FirstOrDefault(_ => (_.Title == title || _.Aliases.Contains(title)) 
+                                     && _.ArtistLinks.Any(artist => artistNames.Contains(artist.Artist.Name) || artist.Artist.Aliases.Intersect(artistNames).Any()));
+            return song != null;
         }
 
         private bool CheckIfAlbumExists(string title, IReadOnlyList<Artist> artists)
