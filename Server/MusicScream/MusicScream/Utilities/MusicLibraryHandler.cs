@@ -247,19 +247,19 @@ namespace MusicScream.Utilities
 
         private async Task CreateArtistUnitLinks(Artist artist)
         {
-            var unitNames = await _vgmdbLookupHandler.GetArtistUnitNames(artist.VgmdbLink);
-            var units = new List<Artist>();
+            var(isUnit, unitNames) = await _vgmdbLookupHandler.GetArtistUnitOrMemberNames(artist.VgmdbLink);
+            var artists = new List<Artist>();
             foreach (var unitName in unitNames)
             {
-                units.AddRange(FindArtistsWithName(unitName));
+                artists.AddRange(FindArtistsWithName(unitName));
             }
 
-            foreach (var unit in units)
+            foreach (var pairedArtist in artists)
             {
                 var artistUnitLink = new ArtistUnitLink
                 {
-                    ArtistId = artist.Id,
-                    UnitId = unit.Id
+                    ArtistId = isUnit ? pairedArtist.Id : artist.Id,
+                    UnitId = isUnit ? artist.Id : pairedArtist.Id
                 };
                 _dbContext.Add(artistUnitLink);
             }

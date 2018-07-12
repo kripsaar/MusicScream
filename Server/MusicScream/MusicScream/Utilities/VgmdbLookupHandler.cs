@@ -92,13 +92,21 @@ namespace MusicScream.Utilities
             return artist;
         }
 
-        public async Task<IEnumerable<string>> GetArtistUnitNames(string artistLink)
+        public async Task<(bool isUnit, IEnumerable<string> names)> GetArtistUnitOrMemberNames(string artistLink)
         {
             if (artistLink == "")
-                return Enumerable.Empty<string>();
+                return (false, Enumerable.Empty<string>());
             var artistResult = await GetArtistPageInfo(artistLink);
-            var res = artistResult.Units.Select(_ => _.Names.En);
-            return res;
+            if (artistResult.Members == null)
+            {
+                if (artistResult.Units == null)
+                    return (false, Enumerable.Empty<string>());
+                var unitNames = artistResult.Units.Select(_ => _.Names.En);
+                return (false, unitNames);
+            }
+
+            var memberNames = artistResult.Members.Select(_ => _.Names.En);
+            return (true, memberNames);
         }
 
         private async Task<AlbumResult> GetAlbumPageInfo(string albumLink)
@@ -453,6 +461,7 @@ namespace MusicScream.Utilities
             public IEnumerable<ArtistShortResult> Aliases { get; set; }
             public string Link { get; set; }
             public IEnumerable<ArtistShortResult> Units { get; set; }
+            public IEnumerable<ArtistShortResult> Members { get; set; }
             public IEnumerable<AlbumInfoResult> Discography { get; set; }
             public ArtistInfoResult Info { get; set; }
         }
