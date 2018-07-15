@@ -362,30 +362,22 @@ namespace MusicScream.Utilities
             return (title, aliases);
         }
 
-        public async Task<IEnumerable<Product>> FindProductsForAlbum(string albumLink)
+        public async Task<IEnumerable<(Product product, IEnumerable<Product> franchises)>> FindProductsForAlbum(string albumLink)
         {
             if (string.IsNullOrEmpty(albumLink))
-                return new List<Product>();
+                return new List<(Product prod, IEnumerable<Product> franch)>();
             var albumPage = await GetAlbumPageInfo(albumLink);
             var products = new List<Product>();
+            var productsAndFranchises = new List<(Product prod, IEnumerable<Product> franch)>();
             foreach (var albumProduct in albumPage.Products)
             {
                 var productPage = await GetProductPage(albumProduct.Link);
+                var product = GenerateProductFromProductPage(productPage);
+
+                products.Add(product);
+
                 string title;
                 var aliases = new List<string>();
-                string type;
-                switch (productPage.Type)
-                {
-                    case "Video":
-                        type = Product.Animation;
-                        break;
-                    case "Game":
-                        type = Product.Game;
-                        break;
-                    default:
-                        type = Product.Other;
-                        break;
-                }
                 if (albumProduct.Names.Ja != null)
                 {
                     title = albumProduct.Names.Ja;
@@ -405,18 +397,99 @@ namespace MusicScream.Utilities
                     title = albumProduct.Names.En;
                 }
 
-                var year = productPage.Release_Date != null ? Int32.Parse(productPage.Release_Date.Substring(0, 4)) : 0;
-                var product = new Product
+                product.Title = title;
+                product.Aliases = aliases.Distinct().ToArray();
+
+                if (productPage.Franchises == null)
                 {
-                    Title = title,
-                    Aliases = aliases.Distinct().ToArray(),
-                    Year = year,
-                    Type = type
-                };
-                products.Add(product);
+                    productsAndFranchises.Add((product, new List<Product>()));
+                    continue;
+                }
+
+                var franchises = new List<Product>();
+
+                foreach (var franchise in productPage.Franchises)
+                {
+                    var franchisePage = await GetProductPage(franchise.Link);
+                    var franchiseProduct = GenerateProductFromProductPage(franchisePage);
+
+                    string franchiseTitle;
+                    var franchiseAliases = new List<string>();
+                    if (albumProduct.Names.Ja != null)
+                    {
+                        franchiseTitle = albumProduct.Names.Ja;
+                        if (albumProduct.Names.Ja_Latn != null)
+                            franchiseAliases.Add(albumProduct.Names.Ja_Latn);
+                        if (albumProduct.Names.En != null)
+                            franchiseAliases.Add(albumProduct.Names.En);
+                    }
+                    else if (albumProduct.Names.Ja_Latn != null)
+                    {
+                        franchiseTitle = albumProduct.Names.Ja_Latn;
+                        if (albumProduct.Names.En != null)
+                            franchiseAliases.Add(albumProduct.Names.En);
+                    }
+                    else
+                    {
+                        franchiseTitle = albumProduct.Names.En;
+                    }
+
+                    franchiseProduct.Title = franchiseTitle;
+                    franchiseProduct.Aliases = franchiseAliases.Distinct().ToArray();
+
+                    franchises.Add(franchiseProduct);
+                }
+
+                productsAndFranchises.Add((product, franchises));
+
+                // TODO: Generate franchise or child products
+
             }
 
-            return products;
+            return productsAndFranchises;
+        }
+
+        private Product GenerateProductFromProductPage(ProductPageResult productPage)
+        {
+            string title;
+            var aliases = new List<string>();
+            string type;
+            switch (productPage.Type)
+            {
+                case "Video":
+                    type = Product.Animation;
+                    break;
+                case "Game":
+                    type = Product.Game;
+                    break;
+                case "Franchise":
+                    type = Product.Franchise;
+                    break;
+                default:
+                    type = Product.Other;
+                    break;
+            }
+
+            if (productPage.Name_Real != null)
+            {
+                title = productPage.Name_Real;
+                if (productPage.Name != null)
+                    aliases.Add(productPage.Name);
+            }
+            else
+            {
+                title = productPage.Name;
+            }
+
+            var year = productPage.Release_Date != null ? Int32.Parse(productPage.Release_Date.Substring(0, 4)) : 0;
+            var product = new Product
+            {
+                Title = title,
+                Aliases = aliases.Distinct().ToArray(),
+                Year = year,
+                Type = type
+            };
+            return product;
         }
 
         private async Task<ProductPageResult> GetProductPage(string productLink)
@@ -534,6 +607,8 @@ namespace MusicScream.Utilities
             public string Name_Real { get; set; }
             public string Release_Date { get; set; }
             public string Type { get; set; }
+            public IEnumerable<ProductResult> Franchises { get; set; }
+            public IEnumerable<ProductResult> Titles { get; set; }
         }
     }
 }

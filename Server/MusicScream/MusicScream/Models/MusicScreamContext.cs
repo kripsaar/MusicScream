@@ -25,6 +25,7 @@ namespace MusicScream.Models
         public DbSet<Product> Products { get; set; }
         public DbSet<ProductSongLink> ProductSongLinks { get; set; }
         public DbSet<ProductAlbumLink> ProductAlbumLinks { get; set; }
+        public DbSet<FranchiseProductLink> FranchiseProductLinks { get; set; }
 
         public DbSet<Season> Seasons { get; set; }
         public DbSet<SeasonSongLink> SeasonSongLinks { get; set; }
@@ -159,6 +160,19 @@ namespace MusicScream.Models
                 .HasOne(_ => _.Song)
                 .WithMany(_ => _.ProductLinks)
                 .HasForeignKey(_ => _.SongId);
+
+            modelBuilder.Entity<FranchiseProductLink>()
+                .HasKey(_ => new {_.FranchiseId, _.ProductId});
+
+            modelBuilder.Entity<FranchiseProductLink>()
+                .HasOne(_ => _.Franchise)
+                .WithMany(_ => _.SubProductLinks)
+                .HasForeignKey(_ => _.FranchiseId);
+
+            modelBuilder.Entity<FranchiseProductLink>()
+                .HasOne(_ => _.Product)
+                .WithMany(_ => _.FranchiseLinks)
+                .HasForeignKey(_ => _.ProductId);
 
             modelBuilder.Entity<SeasonProductLink>()
                 .HasKey(_ => new { _.SeasonId, _.ProductId });

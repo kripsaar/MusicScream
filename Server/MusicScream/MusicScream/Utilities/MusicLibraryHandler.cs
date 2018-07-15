@@ -397,9 +397,9 @@ namespace MusicScream.Utilities
 
         private async Task CreateProductAlbumLinks(Album album)
         {
-            var products = await _vgmdbLookupHandler.FindProductsForAlbum(album.VgmdbLink);
+            var productsAndFranchises = await _vgmdbLookupHandler.FindProductsForAlbum(album.VgmdbLink);
 
-            foreach (var product in products)
+            foreach (var (product, franchises) in productsAndFranchises)
             {
                 var dbProduct = _dbContext.Products.FirstOrDefault(_ => _.VgmdbLink == product.VgmdbLink);
                 if (dbProduct != null)
@@ -410,8 +410,34 @@ namespace MusicScream.Utilities
 
                 _dbContext.Add(product);
                 _dbContext.SaveChanges();
+                foreach (var franchise in franchises)
+                {
+                    var selectedFranchise = _dbContext.Products.FirstOrDefault(_ => _.VgmdbLink == franchise.VgmdbLink);
+                    if (selectedFranchise != null)
+                    {
+                        _dbContext.Add(franchise);
+                        _dbContext.SaveChanges();
+                        selectedFranchise = franchise;
+                    }
+                    CreateFranchiseProductLink(product, selectedFranchise);
+                }
                 CreateProductAlbumLink(product, album);
             }
+        }
+
+        private void CreateFranchiseProductLink(Product product, Product franchise)
+        {
+            if (_dbContext.FranchiseProductLinks.Any(_ => _.FranchiseId == franchise.Id && _.ProductId == product.Id))
+                return;
+
+            var franchiseProductLink = new FranchiseProductLink
+            {
+                FranchiseId = franchise.Id,
+                ProductId = product.Id
+            };
+
+            _dbContext.Add(franchiseProductLink);
+            _dbContext.SaveChanges();
         }
 
         private void CreateProductAlbumLink(Product product, Album album)

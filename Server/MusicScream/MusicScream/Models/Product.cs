@@ -9,6 +9,7 @@ namespace MusicScream.Models
     {
         public const string Animation = "Animation";
         public const string Game = "Game";
+        public const string Franchise = "Franchise";
         public const string Other = "Other";
 
         public int Id { get; set; }
@@ -21,5 +22,7 @@ namespace MusicScream.Models
         public IEnumerable<ProductSongLink> SongLinks { get; set; }
         public IEnumerable<ProductAlbumLink> AlbumLinks { get; set; }
         public IEnumerable<SeasonProductLink> SeasonLinks { get; set; }
+        public IEnumerable<FranchiseProductLink> FranchiseLinks { get; set; }
+        public IEnumerable<FranchiseProductLink> SubProductLinks { get; set; }
     }
 }
