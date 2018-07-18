@@ -134,7 +134,7 @@ export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
                             {
                                 this.selectSong(song, index);
                             }}>
-                            {(index + 1) + ". " + (song.artists.length > 0 ? song.artists[0].name : "Unknown Artist") + " - " + song.title}
+                            {(index + 1) + ". " + (song.artists.length > 0 ? song.artists.map(artist => artist.name).join(", ") : "Unknown Artist") + " - " + song.title}
                         </li>
                     )
                 }
