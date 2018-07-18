@@ -1,14 +1,21 @@
 import { ArtistInfo } from "./ArtistModel";
 import { AlbumInfo } from "./AlbumModel";
+import { GenreInfo } from "./GenreModel";
+import { ProductInfo } from "./ProductModel";
+import { SeasonInfo } from "./SeasonModel";
 
 export interface Song
 {
     id : number;
     title : string;
-    artist: ArtistInfo;
-    album: AlbumInfo;
+    aliases: string[];
     year: number;
-    genre: string;
+    
+    artists: ArtistInfo[];
+    album: AlbumInfo;
+    genres: GenreInfo[];
+    products: ProductInfo[];
+    seasons: SeasonInfo[];
 }
 
 export interface SongInfo

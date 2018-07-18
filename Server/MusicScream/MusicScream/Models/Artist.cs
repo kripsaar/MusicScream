@@ -11,6 +11,7 @@ namespace MusicScream.Models
         public string Name { get; set; }
         public string[] Aliases { get; set; }
         public string VgmdbLink { get; set; }
+
         public IEnumerable<ArtistAlbumLink> AlbumLinks { get; set; }
         public IEnumerable<ArtistUnitLink> ArtistUnitLinks { get; set; }
         public IEnumerable<ArtistUnitLink> UnitArtistLinks { get; set; }
