@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { RouteComponentProps } from 'react-router';
 import {Communication} from '../../Communication';
-import {Song} from './SongModel';
+import {Song} from '../../Models/SongModel';
 
 interface IMusicPlayerState
 {
