@@ -29,10 +29,14 @@ namespace MusicScream.Controllers
                 {
                     song.Id,
                     song.Title,
-                    Artist = song.ArtistLinks.Any() ? String.Join(", ", song.ArtistLinks.Select(_ => _.Artist.Name)) : "Unknown Artist",
-                    Album = song.AlbumLinks.Any() ? String.Join(", ", song.AlbumLinks.Select(_ => _.Album.Title)) : "Unknown Album",
-                    Genre = song.GenreLinks.Any() ? String.Join(", ", song.GenreLinks.Select(_ => _.Genre.Name)) : "Unknown Genre",
-                    song.Year
+                    song.Aliases,
+                    song.Year,
+                    Artists = song.ArtistLinks.Select(_ => new { Id = _.ArtistId, Name = _.Artist.Name }),
+                    Albums = song.AlbumLinks.Select(_ => new { Id = _.AlbumId, Title = _.Album.Title}),
+                    Genres = song.GenreLinks.Select(_ => new {Id = _.GenreId, Name = _.Genre.Name}),
+                    Products = song.ProductLinks.Select(_ => new {Id = _.ProductId, Title = _.Product.Title}),
+                    Seasons = song.SeasonLinks.Select(_ => new { Id = _.SeasonId, Name = _.Season.Name })
+
                 }
             }));
         }
@@ -45,10 +49,13 @@ namespace MusicScream.Controllers
                 {
                     song.Id,
                     song.Title,
-                    Artist = song.ArtistLinks.Any() ? String.Join(", ", song.ArtistLinks.Select(_ => _.Artist.Name)) : "Unknown Artist",
-                    Album = song.AlbumLinks.Any() ? String.Join(", ", song.AlbumLinks.Select(_ => _.Album.Title)) : "Unknown Album",
-                    Genre = song.GenreLinks.Any() ? String.Join(", ", song.GenreLinks.Select(_ => _.Genre.Name)) : "Unknown Genre",
-                    song.Year
+                    song.Aliases,
+                    song.Year,
+                    Artists = song.ArtistLinks.Select(_ => new { Id = _.ArtistId, Name = _.Artist.Name }),
+                    Albums = song.AlbumLinks.Select(_ => new { Id = _.AlbumId, Title = _.Album.Title }),
+                    Genres = song.GenreLinks.Select(_ => new { Id = _.GenreId, Name = _.Genre.Name }),
+                    Products = song.ProductLinks.Select(_ => new { Id = _.ProductId, Title = _.Product.Title }),
+                    Seasons = song.SeasonLinks.Select(_ => new { Id = _.SeasonId, Name = _.Season.Name })
                 })
             }));
         }
@@ -59,6 +66,8 @@ namespace MusicScream.Controllers
                 .Include(_ => _.ArtistLinks).ThenInclude(_ => _.Artist)
                 .Include(_ => _.AlbumLinks).ThenInclude(_ => _.Album)
                 .Include(_ => _.GenreLinks).ThenInclude(_ => _.Genre)
+                .Include(_ => _.ProductLinks).ThenInclude(_ => _.Product)
+                .Include(_ => _.SeasonLinks).ThenInclude(_ => _.Season)
             );
         }
 
