@@ -413,7 +413,7 @@ namespace MusicScream.Utilities
                 foreach (var franchise in franchises)
                 {
                     var selectedFranchise = _dbContext.Products.FirstOrDefault(_ => _.VgmdbLink == franchise.VgmdbLink);
-                    if (selectedFranchise != null)
+                    if (selectedFranchise == null)
                     {
                         _dbContext.Add(franchise);
                         _dbContext.SaveChanges();

@@ -415,23 +415,23 @@ namespace MusicScream.Utilities
 
                     string franchiseTitle;
                     var franchiseAliases = new List<string>();
-                    if (albumProduct.Names.Ja != null)
+                    if (franchise.Names.Ja != null)
                     {
-                        franchiseTitle = albumProduct.Names.Ja;
-                        if (albumProduct.Names.Ja_Latn != null)
-                            franchiseAliases.Add(albumProduct.Names.Ja_Latn);
-                        if (albumProduct.Names.En != null)
-                            franchiseAliases.Add(albumProduct.Names.En);
+                        franchiseTitle = franchise.Names.Ja;
+                        if (franchise.Names.Ja_Latn != null)
+                            franchiseAliases.Add(franchise.Names.Ja_Latn);
+                        if (franchise.Names.En != null)
+                            franchiseAliases.Add(franchise.Names.En);
                     }
-                    else if (albumProduct.Names.Ja_Latn != null)
+                    else if (franchise.Names.Ja_Latn != null)
                     {
-                        franchiseTitle = albumProduct.Names.Ja_Latn;
-                        if (albumProduct.Names.En != null)
-                            franchiseAliases.Add(albumProduct.Names.En);
+                        franchiseTitle = franchise.Names.Ja_Latn;
+                        if (franchise.Names.En != null)
+                            franchiseAliases.Add(franchise.Names.En);
                     }
                     else
                     {
-                        franchiseTitle = albumProduct.Names.En;
+                        franchiseTitle = franchise.Names.En;
                     }
 
                     franchiseProduct.Title = franchiseTitle;
@@ -487,7 +487,8 @@ namespace MusicScream.Utilities
                 Title = title,
                 Aliases = aliases.Distinct().ToArray(),
                 Year = year,
-                Type = type
+                Type = type,
+                VgmdbLink = productPage.Link
             };
             return product;
         }
