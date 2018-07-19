@@ -2,12 +2,14 @@ import * as React from 'react';
 import { RouteComponentProps } from 'react-router';
 import {Communication} from '../../Communication';
 import {Song} from '../../Models/SongModel';
+import { MusicPlayerControls } from './MusicPlayerControls';
 
 interface IMusicPlayerState
 {
     songList : Song[];
     selectedSong : Song | null;
     nextSong: Song | undefined;
+    previousSong: Song | undefined;
     songState: string;
     queue: Song[];
 }
@@ -23,7 +25,7 @@ export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
     constructor(props: {}, state: IMusicPlayerState)
     {
         super(props, state);
-        this.state = {songList: [], selectedSong: null, nextSong: undefined, songState: STOP_STATE, queue: []}
+        this.state = {songList: [], selectedSong: null, nextSong: undefined, previousSong: undefined, songState: STOP_STATE, queue: []}
     }
 
     private rotateArray(array: any[], count: number) : any[]
@@ -114,12 +116,19 @@ export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
             this.audioElement.pause();
     }
 
-    private onSongEnd()
+    private onNextSong()
     {
         if (!this.state.nextSong || !this.audioElement)
             return;
         this.selectSong(this.state.nextSong);
         this.getNextSongFromQueue();
+    }
+
+    private onPreviousSong()
+    {
+        if (!this.state.previousSong || !this.audioElement)
+            return;
+        this.selectSong(this.state.previousSong);
     }
 
     public render()
@@ -155,10 +164,16 @@ export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
                     style={{flexGrow: 1, flexShrink: 1, flexBasis: "auto", minWidth: "0px"}} 
                     autoPlay
                     disabled={!(this.state.selectedSong)}
-                    onEnded={() => this.onSongEnd()}
+                    onEnded={() => this.onNextSong()}
                     src={this.state.selectedSong ? this.getSongUrl(this.state.selectedSong) : undefined}
                 />
             </div>
+            <MusicPlayerControls 
+                audioElement={this.audioElement}
+                onPlayPause={this.togglePlay.bind(this)} 
+                onPrevious={this.onPreviousSong.bind(this)}
+                onNext={this.onNextSong.bind(this)}
+            />
         </div>
     }
 }
