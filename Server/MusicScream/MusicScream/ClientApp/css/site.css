@@ -89,3 +89,22 @@
     overflow: hidden;
     padding: 10px 20px;
 }
+
+.media-control-button{
+    font-size: 2em;
+    margin: 10px;
+}
+
+.media-control-button:hover{
+    color: gray;
+}
+
+.media-control-button-active{
+    font-size: 2em;
+    margin: 10px;
+    color: darkorange;
+}
+
+.media-control-button-active:hover{
+    color:orange;
+}

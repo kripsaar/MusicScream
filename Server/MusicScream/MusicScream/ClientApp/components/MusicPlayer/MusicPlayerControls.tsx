@@ -7,11 +7,15 @@ interface IMusicPlayerControlsProps
     onStop?: () => void;
     onPrevious: () => void;
     onNext: () => void;
+    onShuffle?: () => void;
+    onRepeat?: () => void;
 }
 
 interface IMusicPlayerControlsState
 {
     paused: boolean;
+    shuffle: boolean;
+    repeat: boolean;
 }
 
 export class MusicPlayerControls extends React.Component<IMusicPlayerControlsProps, IMusicPlayerControlsState>
@@ -19,7 +23,7 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
     constructor(props: IMusicPlayerControlsProps, state: IMusicPlayerControlsState)
     {
         super(props, state);
-        this.state = {paused: true};
+        this.state = {paused: true, shuffle: false, repeat: false};
     }
 
     componentWillReceiveProps(nextProps: IMusicPlayerControlsProps)
@@ -33,10 +37,35 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
 
     public render()
     {
-        return <div>
-            <span className="glyphicon glyphicon-step-backward" onClick={this.props.onPrevious}></span>
-            <span className={this.state.paused ? "glyphicon glyphicon-play" : "glyphicon glyphicon-pause"} onClick={this.props.onPlayPause}></span>
-            <span className="glyphicon glyphicon-step-forward" onClick={this.props.onNext}></span>
+        return <div style={{backgroundColor: "#D3D3D3", display: "flex", justifyContent: "center", alignItems: "center"}}>
+            {this.props.onShuffle ?
+                <span 
+                    className={"glyphicon glyphicon-random" + (this.state.shuffle ? " media-control-button-active" : " media-control-button")}
+                    onClick={this.props.onShuffle}
+                />
+            : null}
+            <span className="glyphicon glyphicon-step-backward media-control-button"
+                onClick={this.props.onPrevious}
+            />
+            <span 
+                className={"media-control-button " + (this.state.paused ? "glyphicon glyphicon-play" : "glyphicon glyphicon-pause")}
+                onClick={this.props.onPlayPause}
+            />
+            {this.props.onStop ?
+                <span 
+                    className={"glyphicon glyphicon-stop media-control-button"}
+                    onClick={this.props.onStop}
+                />
+            : null}
+            <span className="glyphicon glyphicon-step-forward media-control-button"
+                onClick={this.props.onNext}
+            />
+            {this.props.onRepeat ?
+                <span 
+                    className={"glyphicon glyphicon-retweet" + (this.state.repeat ? " media-control-button-active" : " media-control-button")}
+                    onClick={this.props.onRepeat}
+                />
+            : null}
         </div>
     }
 }

@@ -173,6 +173,8 @@ export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
                 onPlayPause={this.togglePlay.bind(this)} 
                 onPrevious={this.onPreviousSong.bind(this)}
                 onNext={this.onNextSong.bind(this)}
+                onRepeat={() => {}}
+                onShuffle={() => {}}
             />
         </div>
     }
