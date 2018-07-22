@@ -65,6 +65,20 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
         }
     }
 
+    private toggleShuffle()
+    {
+        this.setState({shuffle: !this.state.shuffle});
+        if (this.props.onShuffle)
+            this.props.onShuffle();
+    }
+
+    private toggleRepeat()
+    {
+        this.setState({repeat: !this.state.repeat});
+        if (this.props.onRepeat)
+            this.props.onRepeat();
+    }
+
     public render()
     {
         var volumeIcon: string;
@@ -79,7 +93,7 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
             {this.props.onShuffle ?
                 <span 
                     className={"glyphicon glyphicon-random" + (this.state.shuffle ? " media-control-button-active" : " media-control-button")}
-                    onClick={this.props.onShuffle}
+                    onClick={this.toggleShuffle.bind(this)}
                 />
             : null}
             <span className="glyphicon glyphicon-step-backward media-control-button"
@@ -101,7 +115,7 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
             {this.props.onRepeat ?
                 <span 
                     className={"glyphicon glyphicon-retweet" + (this.state.repeat ? " media-control-button-active" : " media-control-button")}
-                    onClick={this.props.onRepeat}
+                    onClick={this.toggleRepeat.bind(this)}
                 />
             : null}
             <div style={{position: "absolute", right: "10px", display: "flex", alignItems: "center"}}>
