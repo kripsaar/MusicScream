@@ -42,14 +42,39 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
 
     private changeVolume(value: number)
     {
-        this.setState({volume: value});
+        this.setState({volume: value, muted: false});
         if(!this.props.audioElement)
             return;
         this.props.audioElement.volume = value / 100;
+        this.props.audioElement.muted = false;
+    }
+
+    private toggleMute()
+    {
+        if (!this.props.audioElement)
+            return;
+        if (this.state.muted)
+        {
+            this.setState({muted: false, volume: this.props.audioElement.volume * 100});
+            this.props.audioElement.muted = false;
+        }
+        else
+        {
+            this.setState({muted: true, volume: 0});
+            this.props.audioElement.muted = true;
+        }
     }
 
     public render()
     {
+        var volumeIcon: string;
+        if (this.state.muted || this.state.volume == 0)
+            volumeIcon = "glyphicon glyphicon-volume-off";
+        else if (this.state.volume < 50)
+            volumeIcon = "glyphicon glyphicon-volume-down";
+        else
+            volumeIcon = "glyphicon glyphicon-volume-up";
+
         return <div style={{backgroundColor: "#D3D3D3", position: "relative", display: "flex", justifyContent: "center", alignItems: "center"}}>
             {this.props.onShuffle ?
                 <span 
@@ -81,7 +106,8 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
             : null}
             <div style={{position: "absolute", right: "10px", display: "flex", alignItems: "center"}}>
                 <span 
-                    className="glyphicon glyphicon-volume-off media-control-button"
+                    className={"media-control-button " + volumeIcon}
+                    onClick={this.toggleMute.bind(this)}
                 />
                 <Slider 
                     style={{margin: "auto", width: "100px"}}
