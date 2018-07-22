@@ -114,6 +114,19 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
             this.props.onRepeat();
     }
 
+    private formatTime(totalSeconds: number) : string
+    {
+        var hours = Math.floor(totalSeconds / 3600);
+        var minutes = Math.floor((totalSeconds % 3600) / 60);
+        var seconds = Math.floor(totalSeconds % 60);
+
+        var result = (hours > 0 ? hours.toString() + ":" : "")
+            + (minutes < 10 && hours > 0 ? "0" + minutes.toString() + ":" : "") + minutes.toString() + ":"
+            + (seconds < 10 ? "0" : "") + seconds.toString();
+
+        return result;
+    }
+
     public render()
     {
 
@@ -127,6 +140,9 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
 
         return <div style={{backgroundColor: "#D3D3D3"}}>
             <div className="media-control-slider-bar">
+                <div className="media-control-time" style={{justifyContent: "flex-end"}}>
+                    {this.formatTime(this.state.currentTime)}
+                </div>
                 <Slider 
                     min={0}
                     max={this.state.duration}
@@ -137,6 +153,9 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
                     onChange={this.onSeek.bind(this)}
                     onAfterChange={this.finalizeSeek.bind(this)}
                 />
+                <div className="media-control-time" style={{justifyContent: "flex-start"}}>
+                    {this.formatTime(this.state.duration)}
+                </div>
             </div>
             <div className="media-control-button-bar">
                 {this.props.onShuffle ?
