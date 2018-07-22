@@ -165,7 +165,6 @@ export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
                 </div>
                 <audio 
                     ref={(audio) => this.audioElement = audio}
-                    controls
                     style={{flexGrow: 1, flexShrink: 1, flexBasis: "auto", minWidth: "0px"}} 
                     autoPlay
                     disabled={!(this.state.selectedSong)}
