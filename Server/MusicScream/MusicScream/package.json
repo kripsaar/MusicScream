@@ -33,7 +33,9 @@
   },
   "dependencies": {
     "@types/jquery": "^3.3.2",
+    "@types/rc-slider": "^8.2.3",
     "@types/react-bootstrap": "^0.32.9",
+    "rc-slider": "^8.6.1",
     "react-bootstrap": "^0.32.1"
   }
 }

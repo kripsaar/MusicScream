@@ -1,4 +1,7 @@
 import * as React from 'react';
+import Slider from 'rc-slider';
+
+import 'rc-slider/assets/index.css'
 
 interface IMusicPlayerControlsProps
 {
@@ -16,6 +19,8 @@ interface IMusicPlayerControlsState
     paused: boolean;
     shuffle: boolean;
     repeat: boolean;
+    muted: boolean;
+    volume: number;
 }
 
 export class MusicPlayerControls extends React.Component<IMusicPlayerControlsProps, IMusicPlayerControlsState>
@@ -23,7 +28,7 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
     constructor(props: IMusicPlayerControlsProps, state: IMusicPlayerControlsState)
     {
         super(props, state);
-        this.state = {paused: true, shuffle: false, repeat: false};
+        this.state = {paused: true, shuffle: false, repeat: false, muted: false, volume: 100};
     }
 
     componentWillReceiveProps(nextProps: IMusicPlayerControlsProps)
@@ -35,9 +40,17 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
         }
     }
 
+    private changeVolume(value: number)
+    {
+        this.setState({volume: value});
+        if(!this.props.audioElement)
+            return;
+        this.props.audioElement.volume = value / 100;
+    }
+
     public render()
     {
-        return <div style={{backgroundColor: "#D3D3D3", display: "flex", justifyContent: "center", alignItems: "center"}}>
+        return <div style={{backgroundColor: "#D3D3D3", position: "relative", display: "flex", justifyContent: "center", alignItems: "center"}}>
             {this.props.onShuffle ?
                 <span 
                     className={"glyphicon glyphicon-random" + (this.state.shuffle ? " media-control-button-active" : " media-control-button")}
@@ -66,6 +79,16 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
                     onClick={this.props.onRepeat}
                 />
             : null}
+            <div style={{position: "absolute", right: "10px", display: "flex", alignItems: "center"}}>
+                <span 
+                    className="glyphicon glyphicon-volume-off media-control-button"
+                />
+                <Slider 
+                    style={{margin: "auto", width: "100px"}}
+                    value={this.state.volume}
+                    onChange={this.changeVolume.bind(this)}
+                />
+            </div>
         </div>
     }
 }

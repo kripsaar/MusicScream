@@ -108,3 +108,12 @@
 .media-control-button-active:hover{
     color:orange;
 }
+
+.rc-slider-track{
+    background-color: darkorange !important;
+}
+
+.rc-slider-handle{
+    background-color: darkorange !important;
+    border-color: darkorange !important;
+}
