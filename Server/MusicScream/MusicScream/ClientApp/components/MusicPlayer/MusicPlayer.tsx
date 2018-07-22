@@ -109,7 +109,12 @@ export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
     {
         if (!this.audioElement)
             return;
-        this.audioElement;
+        if (!this.state.selectedSong)
+        {
+            if (this.state.songList.length < 1)
+                return;
+            this.selectSong(this.state.songList[0], 0);
+        }
         if (this.audioElement.paused)
             this.audioElement.play();
         else
