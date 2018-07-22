@@ -118,13 +118,13 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
                     onClick={this.toggleRepeat.bind(this)}
                 />
             : null}
-            <div style={{position: "absolute", right: "10px", display: "flex", alignItems: "center"}}>
+            <div style={{position: "absolute", right: "20px", display: "flex", alignItems: "center"}}>
                 <span 
                     className={"media-control-button " + volumeIcon}
                     onClick={this.toggleMute.bind(this)}
                 />
                 <Slider 
-                    style={{margin: "auto", width: "100px"}}
+                    style={{margin: "auto", width: "75px"}}
                     value={this.state.volume}
                     onChange={this.changeVolume.bind(this)}
                 />
