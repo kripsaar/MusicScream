@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { RouteComponentProps } from 'react-router';
-import {Communication} from '../../Communication';
-import {Song} from '../../Models/SongModel';
-import { MusicPlayerControls } from './MusicPlayerControls';
+import { MusicPlayer, MusicPlayerInstance } from "./MusicPlayer";
+import { Song } from '../../Models/SongModel';
+import { Communication } from '../../Communication';
 
-interface IMusicPlayerState
+interface ISongListState
 {
     songList : Song[];
     selectedSong : Song | null;
@@ -18,11 +17,11 @@ const STOP_STATE : string = "stop";
 const PLAY_STATE : string = "play";
 const PAUSE_STATE : string = "pause";
 
-export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
+export class SongList extends React.Component<{}, ISongListState>
 {
-    audioElement : HTMLAudioElement | null = null;
+    musicPlayer = MusicPlayerInstance;
 
-    constructor(props: {}, state: IMusicPlayerState)
+    constructor(props: {}, state: ISongListState)
     {
         super(props, state);
         this.state = {songList: [], selectedSong: null, nextSong: undefined, previousSong: undefined, songState: STOP_STATE, queue: []}
@@ -59,6 +58,7 @@ export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
                 if (data.songs)
                 {
                     this.setState({songList: data.songs});
+                    this.musicPlayer.songList = data.songs;
                 }
             }
         );
@@ -76,6 +76,8 @@ export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
 
     private selectSong(song : Song, queueIndex?: number)
     {
+        if (this.musicPlayer)
+            this.musicPlayer.selectSong(song, queueIndex);
         this.setState({selectedSong: song});
         if (queueIndex == undefined)
             return;
@@ -105,37 +107,6 @@ export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
         this.setState({queue: queue});
     }
 
-    private togglePlay()
-    {
-        if (!this.audioElement)
-            return;
-        if (!this.state.selectedSong)
-        {
-            if (this.state.songList.length < 1)
-                return;
-            this.selectSong(this.state.songList[0], 0);
-        }
-        if (this.audioElement.paused)
-            this.audioElement.play();
-        else
-            this.audioElement.pause();
-    }
-
-    private onNextSong()
-    {
-        if (!this.state.nextSong || !this.audioElement)
-            return;
-        this.selectSong(this.state.nextSong);
-        this.getNextSongFromQueue();
-    }
-
-    private onPreviousSong()
-    {
-        if (!this.state.previousSong || !this.audioElement)
-            return;
-        this.selectSong(this.state.previousSong);
-    }
-
     public render()
     {
         return <div style={{display: "flex", flexDirection: "column"}}>
@@ -153,33 +124,6 @@ export class MusicPlayer extends React.Component<{}, IMusicPlayerState>
                     )
                 }
             </ul>
-            <hr/>
-            <div style={{display: "flex"}}>
-                <div style={{marginLeft: "auto", marginRight: "auto", height: "200px", flex: "0 0 auto"}}>
-                    <img 
-                        src={this.state.selectedSong ? this.getSongArtUrl(this.state.selectedSong) : undefined} 
-                        alt="Nope"
-                        style={{height: "100%"}}
-                        onClick={() => this.togglePlay()}
-                    />
-                </div>
-                <audio 
-                    ref={(audio) => this.audioElement = audio}
-                    style={{flexGrow: 1, flexShrink: 1, flexBasis: "auto", minWidth: "0px"}} 
-                    autoPlay
-                    disabled={!(this.state.selectedSong)}
-                    onEnded={() => this.onNextSong()}
-                    src={this.state.selectedSong ? this.getSongUrl(this.state.selectedSong) : undefined}
-                />
-            </div>
-            <MusicPlayerControls 
-                audioElement={this.audioElement}
-                onPlayPause={this.togglePlay.bind(this)} 
-                onPrevious={this.onPreviousSong.bind(this)}
-                onNext={this.onNextSong.bind(this)}
-                onRepeat={() => {}}
-                onShuffle={() => {}}
-            />
         </div>
     }
 }

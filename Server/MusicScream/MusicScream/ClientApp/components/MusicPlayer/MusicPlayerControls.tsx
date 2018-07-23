@@ -2,14 +2,11 @@ import * as React from 'react';
 import Slider from 'rc-slider';
 
 import 'rc-slider/assets/index.css'
+import { MusicPlayer, MusicPlayerInstance } from './MusicPlayer';
 
 interface IMusicPlayerControlsProps
 {
-    audioElement: HTMLAudioElement | null;
-    onPlayPause: () => void;
     onStop?: () => void;
-    onPrevious: () => void;
-    onNext: () => void;
     onShuffle?: () => void;
     onRepeat?: () => void;
 }
@@ -27,37 +24,36 @@ interface IMusicPlayerControlsState
 
 export class MusicPlayerControls extends React.Component<IMusicPlayerControlsProps, IMusicPlayerControlsState>
 {
+    musicPlayer = MusicPlayerInstance;
+
     constructor(props: IMusicPlayerControlsProps, state: IMusicPlayerControlsState)
     {
         super(props, state);
         this.state = {paused: true, shuffle: false, repeat: false, muted: false, volume: 100, currentTime: 0, duration: 0};
     }
 
-    componentWillReceiveProps(nextProps: IMusicPlayerControlsProps)
+    componentDidMount()
     {
-        if (nextProps.audioElement)
-        {
-            nextProps.audioElement.onpause = () => this.setState({paused: true});
-            nextProps.audioElement.onplay = () => this.setState({paused: false});
-            nextProps.audioElement.addEventListener("durationchange", () => this.setState({duration: this.props.audioElement!.duration}));
-            nextProps.audioElement.addEventListener("timeupdate", this.timeUpdateHandler);
-            this.setState({currentTime: nextProps.audioElement.currentTime, duration: nextProps.audioElement.duration});
-        }
+        this.musicPlayer.audioElement.onpause = () => this.setState({paused: true});
+        this.musicPlayer.audioElement.onplay = () => this.setState({paused: false});
+        this.musicPlayer.audioElement.addEventListener("durationchange", () => this.setState({duration: this.musicPlayer.audioElement.duration}));
+        this.musicPlayer.audioElement.addEventListener("timeupdate", this.timeUpdateHandler);
+        this.setState({currentTime: this.musicPlayer.audioElement.currentTime, duration: this.musicPlayer.audioElement.duration});
     }
 
     private timeUpdateHandler = () =>
     {
-        if (!this.props.audioElement)
+        if (!this.musicPlayer.audioElement)
             return;
-        this.setState({currentTime: this.props.audioElement.currentTime});
+        this.setState({currentTime: this.musicPlayer.audioElement.currentTime});
     }
 
     private startSeek()
     {
-        if (!this.props.audioElement)
+        if (!this.musicPlayer.audioElement)
             return;
 
-        this.props.audioElement.removeEventListener("timeupdate", this.timeUpdateHandler);
+        this.musicPlayer.audioElement.removeEventListener("timeupdate", this.timeUpdateHandler);
     }
 
     private onSeek(value: number)
@@ -68,35 +64,35 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
 
     private finalizeSeek(value: number)
     {
-        if (!this.props.audioElement)
+        if (!this.musicPlayer.audioElement)
             return;
 
-        this.props.audioElement.currentTime = Math.round(value);
-        this.props.audioElement.addEventListener("timeupdate", this.timeUpdateHandler);
+        this.musicPlayer.audioElement.currentTime = Math.round(value);
+        this.musicPlayer.audioElement.addEventListener("timeupdate", this.timeUpdateHandler);
     }
 
     private changeVolume(value: number)
     {
         this.setState({volume: value, muted: false});
-        if(!this.props.audioElement)
+        if(!this.musicPlayer.audioElement)
             return;
-        this.props.audioElement.volume = value / 100;
-        this.props.audioElement.muted = false;
+        this.musicPlayer.audioElement.volume = value / 100;
+        this.musicPlayer.audioElement.muted = false;
     }
 
     private toggleMute()
     {
-        if (!this.props.audioElement)
+        if (!this.musicPlayer.audioElement)
             return;
         if (this.state.muted)
         {
-            this.setState({muted: false, volume: this.props.audioElement.volume * 100});
-            this.props.audioElement.muted = false;
+            this.setState({muted: false, volume: this.musicPlayer.audioElement.volume * 100});
+            this.musicPlayer.audioElement.muted = false;
         }
         else
         {
             this.setState({muted: true, volume: 0});
-            this.props.audioElement.muted = true;
+            this.musicPlayer.audioElement.muted = true;
         }
     }
 
@@ -127,8 +123,30 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
         return result;
     }
 
+    private togglePlayPause()
+    {
+        if (!this.musicPlayer)
+            return;
+        this.musicPlayer.togglePlayPause();
+    }
+
+    private playPreviousSong()
+    {
+        if (!this.musicPlayer)
+            return;
+        this.musicPlayer.playPreviousSong();
+    }
+
+    private playNextSong()
+    {
+        if (!this.musicPlayer)
+            return;
+        this.musicPlayer.playNextSong();
+    }
+
     public render()
     {
+        var duration = isNaN(this.state.duration) ? 0 : this.state.duration;
 
         var volumeIcon: string;
         if (this.state.muted || this.state.volume == 0)
@@ -145,7 +163,7 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
                 </div>
                 <Slider 
                     min={0}
-                    max={this.state.duration}
+                    max={duration}
                     step={0.10}
                     style={{marginTop: "5px", width: "100%"}}
                     value={this.state.currentTime}
@@ -154,7 +172,7 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
                     onAfterChange={this.finalizeSeek.bind(this)}
                 />
                 <div className="media-control-time" style={{justifyContent: "flex-start"}}>
-                    {this.formatTime(this.state.duration)}
+                    {this.formatTime(duration)}
                 </div>
             </div>
             <div className="media-control-button-bar">
@@ -165,11 +183,12 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
                     />
                 : null}
                 <span className="glyphicon glyphicon-step-backward media-control-button"
-                    onClick={this.props.onPrevious}
+                    onClick={this.playPreviousSong.bind(this)}
                 />
                 <span 
                     className={"media-control-button " + (this.state.paused ? "glyphicon glyphicon-play" : "glyphicon glyphicon-pause")}
-                    onClick={this.props.onPlayPause}
+                    // onClick={this.props.onPlayPause}
+                    onClick={this.togglePlayPause.bind(this)}
                 />
                 {this.props.onStop ?
                     <span 
@@ -178,7 +197,7 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
                     />
                 : null}
                 <span className="glyphicon glyphicon-step-forward media-control-button"
-                    onClick={this.props.onNext}
+                    onClick={this.playNextSong.bind(this)}
                 />
                 {this.props.onRepeat ?
                     <span 
