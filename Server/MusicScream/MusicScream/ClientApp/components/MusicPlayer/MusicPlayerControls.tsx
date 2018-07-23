@@ -156,7 +156,7 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
         else
             volumeIcon = "glyphicon glyphicon-volume-up";
 
-        return <div style={{backgroundColor: "#D3D3D3"}}>
+        return <div style={{backgroundColor: "#D3D3D3", paddingBottom: "10px"}}>
             <div className="media-control-slider-bar">
                 <div className="media-control-time" style={{justifyContent: "flex-end"}}>
                     {this.formatTime(this.state.currentTime)}
