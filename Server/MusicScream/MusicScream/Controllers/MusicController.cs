@@ -75,6 +75,7 @@ namespace MusicScream.Controllers
         {
             var songData = _libraryHandler.GetSong(songId);
             var fileResult = new FileContentResult(songData.Data, songData.MimeType);
+            fileResult.EnableRangeProcessing = true;
             return fileResult;
         }
 
