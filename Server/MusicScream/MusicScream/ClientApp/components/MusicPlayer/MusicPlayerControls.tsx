@@ -164,9 +164,22 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
                     style={{height: "100%"}}
                     onClick={this.togglePlayPause.bind(this)}
                 />
-                <a className="media-control-link" style={{marginLeft: "5px "}}>
-                    {this.musicPlayer.selectedSong ? this.musicPlayer.selectedSong.title : undefined}
-                </a>
+                <div style={{marginTop: "5px", marginLeft: "5px"}}>
+                    <a className="media-control-song-link">
+                        {this.musicPlayer.selectedSong ? this.musicPlayer.selectedSong.title : undefined}
+                    </a>
+                    <br/>
+                    { this.musicPlayer.selectedSong ?
+                        this.musicPlayer.selectedSong.artists.map((artist, index) => 
+                            <span>
+                                <a className="media-control-artist-link">
+                                    {artist.name}
+                                </a>
+                                {index < this.musicPlayer.selectedSong!.artists.length - 1 ? ", " : ""}
+                            </span>
+                        )
+                     : "Unknown Artist"}
+                </div>
             </div>
             <div className="media-control-controls">
                 <div className="media-control-slider-bar">
