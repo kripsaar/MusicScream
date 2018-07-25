@@ -19,7 +19,7 @@ export class Layout extends React.Component<LayoutProps, {}> {
                     { this.props.children }
                 </div>
             </div>
-            <div style={{position: "fixed", bottom: 0, left: 0, width: "100%", zIndex: 2}}>
+            <div style={{position: "fixed", bottom: 0, left: 0, width: "100%", height: "80px", zIndex: 2}}>
                 <MusicPlayerControls/>
             </div>
         </div>;

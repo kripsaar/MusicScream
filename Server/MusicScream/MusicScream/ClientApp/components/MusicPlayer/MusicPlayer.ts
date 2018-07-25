@@ -45,7 +45,7 @@ export class MusicPlayer
         return "Music/GetSong?songId=" + song.id;
     }
 
-    private getSongArtUrl(song: Song) : string
+    public getSongArtUrl(song: Song) : string
     {
         return "Music/GetAlbumArt?songId=" + song.id;
     }
