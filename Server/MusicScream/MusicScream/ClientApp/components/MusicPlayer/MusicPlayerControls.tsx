@@ -1,5 +1,6 @@
 import * as React from 'react';
 import Slider from 'rc-slider';
+import { Link } from 'react-router-dom';
 
 import 'rc-slider/assets/index.css'
 import { MusicPlayer, MusicPlayerInstance } from './MusicPlayer';
@@ -158,23 +159,26 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
 
         return <div className="media-control-bar">
             <div className="media-control-currently-playing">
-                <img 
-                    src={this.musicPlayer.selectedSong ? this.musicPlayer.getSongArtUrl(this.musicPlayer.selectedSong) : undefined} 
-                    alt="Nope"
-                    style={{height: "100%"}}
-                    onClick={this.togglePlayPause.bind(this)}
-                />
-                <div style={{marginTop: "5px", marginLeft: "5px"}}>
-                    <a className="media-control-song-link">
-                        {this.musicPlayer.selectedSong ? this.musicPlayer.selectedSong.title : undefined}
+                { this.musicPlayer.selectedSong ?
+                    <a style={{height: "100%"}} href={this.musicPlayer.getSongArtUrl(this.musicPlayer.selectedSong)}>
+                        <img 
+                            src={this.musicPlayer.getSongArtUrl(this.musicPlayer.selectedSong)} 
+                            alt="Nope"
+                            style={{height: "100%"}}
+                        />
                     </a>
+                : null}
+                <div style={{marginTop: "5px", marginLeft: "5px"}}>
+                    <Link className="media-control-song-link" to={ "/" }>
+                        {this.musicPlayer.selectedSong ? this.musicPlayer.selectedSong.title : undefined}
+                    </Link>
                     <br/>
                     { this.musicPlayer.selectedSong ?
                         this.musicPlayer.selectedSong.artists.map((artist, index) => 
                             <span>
-                                <a className="media-control-artist-link">
+                                <Link className="media-control-artist-link" to={"/Artist/" + artist.id}>
                                     {artist.name}
-                                </a>
+                                </Link>
                                 {index < this.musicPlayer.selectedSong!.artists.length - 1 ? ", " : ""}
                             </span>
                         )
