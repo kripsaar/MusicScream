@@ -2,6 +2,7 @@ import * as React from 'react';
 import {Communication} from '../../Communication';
 import {Song} from '../../Models/SongModel';
 import { MusicPlayerControls } from './MusicPlayerControls';
+import { SongQueue } from './SongQueue';
 
 const STOP_STATE : string = "stop";
 const PLAY_STATE : string = "play";
@@ -10,7 +11,7 @@ const PAUSE_STATE : string = "pause";
 export class MusicPlayer
 {
     public audioElement : HTMLAudioElement;
-    public songList : Song[] = [];
+    public songQueue : SongQueue;
 
     selectedSong : Song | null;
     nextSong: Song | undefined;
@@ -20,6 +21,7 @@ export class MusicPlayer
 
     constructor()
     {
+        this.songQueue = new SongQueue([]);
         this.selectedSong = null;
         this.nextSong = undefined;
         this.previousSong = undefined;
@@ -29,15 +31,6 @@ export class MusicPlayer
         this.audioElement.setAttribute("autoplay", "true");
         this.audioElement.onended = this.playNextSong.bind(this);
         document.body.appendChild(this.audioElement);
-    }
-
-    private rotateArray(array: any[], count: number) : any[]
-    {
-        if (array.length < 1)
-            return array;
-        count -= array.length * Math.floor(count / array.length);
-        array.push.apply(array, array.splice(0, count));
-        return array;
     }
 
     private getSongUrl(song: Song) : string
@@ -50,37 +43,14 @@ export class MusicPlayer
         return "Music/GetAlbumArt?songId=" + song.id;
     }
 
-    public selectSong(song : Song, queueIndex?: number)
+    public selectSong(song : Song | null, queueIndex?: number)
     {
+        if (!song)
+            return;
         this.selectedSong = song;
         this.audioElement.setAttribute("src", this.getSongUrl(song));
-        if (queueIndex == undefined)
-            return;
-        this.createQueue(queueIndex);
-    }
-
-    private setNextSong(song: Song | undefined)
-    {
-        this.nextSong = song;
-    }
-
-    private createQueue(startingIndex: number)
-    {
-        var queue = [...this.songList];
-        queue = this.rotateArray(queue, startingIndex);
-        queue.shift();
-        this.queue = queue;
-        this.getNextSongFromQueue();
-    }
-
-    private getNextSongFromQueue()
-    {
-        var queue = this.queue;
-        if (queue.length < 1)
-            return;
-        
-        this.setNextSong(queue.shift())
-        this.queue = queue;
+        if (queueIndex)
+            this.songQueue.selectSong(queueIndex);
     }
 
     public togglePlayPause()
@@ -89,9 +59,7 @@ export class MusicPlayer
             return;
         if (!this.selectedSong)
         {
-            if (this.songList.length < 1)
-                return;
-            this.selectSong(this.songList[0], 0);
+            this.selectSong(this.songQueue.getCurrentSong());
         }
         if (this.audioElement.paused)
             this.audioElement.play();
@@ -101,17 +69,16 @@ export class MusicPlayer
 
     public playNextSong()
     {
-        if (!this.nextSong || !this.audioElement)
+        if (!this.audioElement)
             return;
-        this.selectSong(this.nextSong);
-        this.getNextSongFromQueue();
+        this.selectSong(this.songQueue.getNextSong());
     }
 
     public playPreviousSong()
     {
-        if (!this.previousSong || !this.audioElement)
+        if (!this.audioElement)
             return;
-        this.selectSong(this.previousSong);
+        this.selectSong(this.songQueue.getPreviousSong());
     }
 
     // public oldrender()
