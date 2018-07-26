@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 
 import 'rc-slider/assets/index.css'
 import { MusicPlayer, MusicPlayerInstance } from './MusicPlayer';
+import { ImageModal } from './ImageModal';
 
 interface IMusicPlayerControlsProps
 {
@@ -160,13 +161,15 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
         return <div className="media-control-bar">
             <div className="media-control-currently-playing">
                 { this.musicPlayer.selectedSong ?
-                    <a style={{height: "100%"}} href={this.musicPlayer.getSongArtUrl(this.musicPlayer.selectedSong)}>
-                        <img 
-                            src={this.musicPlayer.getSongArtUrl(this.musicPlayer.selectedSong)} 
-                            alt="Nope"
-                            style={{height: "100%"}}
-                        />
-                    </a>
+                    // <a style={{height: "100%"}} href={this.musicPlayer.getSongArtUrl(this.musicPlayer.selectedSong)}>
+                    //     <img 
+                    //         src={this.musicPlayer.getSongArtUrl(this.musicPlayer.selectedSong)} 
+                    //         alt="Nope"
+                    //         style={{height: "100%"}}
+                    //     />
+                    // </a>
+                    <ImageModal src={this.musicPlayer.getSongArtUrl(this.musicPlayer.selectedSong)} style={{height: "100%"}}>
+                    </ImageModal>
                 : null}
                 <div style={{marginTop: "5px", marginLeft: "5px"}}>
                     <Link className="media-control-song-link" to={ "/" }>
