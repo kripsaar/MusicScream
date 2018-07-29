@@ -5,6 +5,7 @@
     "moduleResolution": "node",
     "target": "es5",
     "jsx": "react",
+    "lib" : ["es2015", "es2015.iterable"],
     "sourceMap": true,
     "skipDefaultLibCheck": true,
     "strict": true,
