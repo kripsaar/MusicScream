@@ -178,7 +178,7 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
                     <br/>
                     { this.musicPlayer.selectedSong ?
                         this.musicPlayer.selectedSong.artists.map((artist, index) => 
-                            <span>
+                            <span key={index}>
                                 <Link className="media-control-artist-link" to={"/Artist/" + artist.id}>
                                     {artist.name}
                                 </Link>
