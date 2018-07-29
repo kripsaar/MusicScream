@@ -7,6 +7,7 @@ interface ISongListState
 {
     songQueue : SongQueue;
     songState: string;
+    currIndex: number;
 }
 
 const STOP_STATE : string = "stop";
@@ -20,13 +21,23 @@ export class SongList extends React.Component<{}, ISongListState>
     constructor(props: {}, state: ISongListState)
     {
         super(props, state);
-        this.state = {songQueue: new SongQueue([]), songState: STOP_STATE}
+        this.state = {songQueue: new SongQueue([]), songState: STOP_STATE, currIndex: 0}
     }
 
     public componentDidMount()
     {
         this.getSongList();
         this.refreshLibrary();
+    }
+
+    public componentWillUnmount()
+    {
+        this.state.songQueue.removeIndexChangeEventHandler(this.handleIndexChange);
+    }
+
+    private handleIndexChange = (newIndex: number) => 
+    {
+        this.setState({currIndex: newIndex});
     }
 
     private refreshLibrary()
@@ -47,6 +58,7 @@ export class SongList extends React.Component<{}, ISongListState>
                     var songQueue = new SongQueue(data.songs);
                     this.setState({songQueue: songQueue});
                     this.musicPlayer.songQueue = songQueue;
+                    songQueue.addIndexChangeEventHandler(this.handleIndexChange);
                 }
             }
         );
@@ -68,7 +80,7 @@ export class SongList extends React.Component<{}, ISongListState>
                 {
                     this.state.songQueue.getQueue().map((song, index) =>
                         <li key={"song"+song.id} className="hidden-parent list-item"
-                            style={{background: this.state.songQueue.getCurrentIndex() == index ? "#C6EDFF" : undefined}}
+                            style={{background: this.state.currIndex == index ? "#C6EDFF" : undefined}}
                             onClick={() => 
                             {
                                 this.selectSong(index);
