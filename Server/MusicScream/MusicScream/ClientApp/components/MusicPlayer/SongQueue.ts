@@ -13,6 +13,9 @@ export class SongQueue
     constructor(songList : Song[])
     {
         this.internalList = songList;
+        this.flattenInternalList();
+        this.recalculateLength();
+        this.recalculateIndexMap();
     }
 
     public getLength() : number
@@ -95,7 +98,7 @@ export class SongQueue
         if (this.currIndex >= this.length)
             return null;
         var internalIndex = this.indexMap.get(this.currIndex);
-        if (!internalIndex || internalIndex >= this.internalList.length)
+        if (internalIndex === undefined || internalIndex >= this.internalList.length)
             return null;
         var element = this.internalList[this.currIndex];
         if (this.isSong(element))
@@ -109,7 +112,7 @@ export class SongQueue
         if (this.currIndex >= this.length || this.currIndex < 0)
             return;
         var internalIndex = this.indexMap.get(this.currIndex);
-        if (!internalIndex || internalIndex >= this.internalList.length || internalIndex < 0)
+        if (internalIndex === undefined || internalIndex >= this.internalList.length || internalIndex < 0)
             return;
         var element = this.internalList[internalIndex];
         if (this.isSong(element))
@@ -129,7 +132,7 @@ export class SongQueue
         if (index >= this.length || index < 0)
             return null;
         var internalIndex = this.indexMap.get(index);
-        if (!internalIndex || internalIndex < 0 || internalIndex >= this.internalList.length)
+        if (internalIndex === undefined || internalIndex < 0 || internalIndex >= this.internalList.length)
             return null;
         this.currIndex = index;
         var element = this.internalList[index];
@@ -138,7 +141,7 @@ export class SongQueue
         else
         {
             var firstIndex = this.indexMapInverse.get(internalIndex);
-            if (!firstIndex)
+            if (firstIndex === undefined)
                 return null;
             return element.selectSong(index - firstIndex);
         }
@@ -149,7 +152,7 @@ export class SongQueue
         if (index >= this.length || index < 0)
             return;
         var internalIndex = this.indexMap.get(index);
-        if (!internalIndex || internalIndex >= this.internalList.length || internalIndex < 0)
+        if (internalIndex === undefined || internalIndex >= this.internalList.length || internalIndex < 0)
             return;
         var element = this.internalList[internalIndex];
         if (this.isSong(element))
@@ -157,7 +160,7 @@ export class SongQueue
         else
         {
             var firstIndex = this.indexMapInverse.get(internalIndex);
-            if (!firstIndex)
+            if (firstIndex === undefined)
                 return;
             element.removeSong(index - firstIndex);
         }
