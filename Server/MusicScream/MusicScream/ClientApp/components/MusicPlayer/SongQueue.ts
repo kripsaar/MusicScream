@@ -215,6 +215,7 @@ export class SongQueue
 
     public playSongNext(song: Song)
     {
+        // TODO: Change
         this.internalList.splice(this.currIndex + 1, 0, song);
         this.length++;
         this.recalculateIndexMap();
@@ -222,6 +223,7 @@ export class SongQueue
 
     public playSongsNext(songs: Song[])
     {
+        // TODO: Change
         this.internalList.splice(this.currIndex + 1, 0, ...songs);
         this.length += songs.length;
         this.recalculateIndexMap();
