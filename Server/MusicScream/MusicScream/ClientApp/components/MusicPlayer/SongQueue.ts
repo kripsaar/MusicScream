@@ -250,17 +250,72 @@ export class SongQueue
         return this.selectSong(this.currIndex);
     }
 
-    public queueSong(song : Song)
+    private addSongs(index: number, ...songs: Song[])
     {
-        this.indexMap.set(this.length, this.internalList.length);
-        this.indexMapInverse.set(this.internalList.length, this.length);
-        
-        this.internalList.push(song);
-        this.length++;
-        this.lengthChangeEventHandlers.forEach(handler => handler(this.length.valueOf()));
+        if (index < 0)
+            return;
+
+        if (index >= this.length)
+            return this.queueSongs(...songs);
+
+        var internalIndex = this.indexMap.get(index);
+        if (internalIndex == undefined)
+            return;
+        var element = this.internalList[internalIndex];
+        var firstIndex = this.indexMapInverse.get(internalIndex);
+        if (firstIndex == undefined)
+            return;
+        if (index == firstIndex)
+        {
+            this.internalList.splice(internalIndex, 0, ...songs);
+            this.flatList.splice(index, 0, ...songs);
+            this.recalculateIndexMap();
+            this.length += songs.length;
+            this.lengthChangeEventHandlers.forEach(handler => handler(this.length.valueOf()));
+            return;
+        }
+
+        if (this.isSong(element))
+            return;
+
+        element.addSongs(index - firstIndex, ...songs);
     }
 
-    public queueSongs(songs : Song[])
+    private addSongQueue(index: number, songQueue: SongQueue)
+    {
+        if (index < 0)
+            return;
+        if (index >= this.length)
+            this.queueSongQueue(songQueue);
+
+        var internalIndex = this.indexMap.get(index);
+        if (!internalIndex)
+            return;
+        var element = this.internalList[internalIndex];
+        var firstIndex = this.indexMapInverse.get(internalIndex);
+        if (firstIndex == undefined)
+            return;
+        if (index == firstIndex)
+        {
+            this.internalList.splice(internalIndex, 0, songQueue);
+            this.flattenInternalList();
+            return;
+        }
+
+        if (this.isSong(element))
+            return;
+
+        this.addSongQueue(index, songQueue);
+    }
+
+    public queueSongQueue(songQueue : SongQueue)
+    {
+        this.internalList.push(songQueue);
+        this.flattenInternalList();
+        songQueue.addLengthChangeEventHandler(this.handleLengthChange);
+    }
+
+    public queueSongs(...songs : Song[])
     {
         var internalIndex = this.internalList.length;
         for (var index = this.length; index < this.length + songs.length; index++)
@@ -271,26 +326,19 @@ export class SongQueue
         }
 
         this.internalList.concat(songs);
+        this.flatList.concat(songs);
         this.length += songs.length;
         this.lengthChangeEventHandlers.forEach(handler => handler(this.length.valueOf()));
     }
 
-    public playSongNext(song: Song)
+    public playSongsNext(...songs: Song[])
     {
-        // TODO: Change
-        this.internalList.splice(this.currIndex + 1, 0, song);
-        this.length++;
-        this.lengthChangeEventHandlers.forEach(handler => handler(this.length.valueOf()));
-        this.recalculateIndexMap();
+        this.addSongs(this.currIndex + 1, ...songs);
     }
 
-    public playSongsNext(songs: Song[])
+    public playSongQueueNext(songQueue: SongQueue)
     {
-        // TODO: Change
-        this.internalList.splice(this.currIndex + 1, 0, ...songs);
-        this.length += songs.length;
-        this.lengthChangeEventHandlers.forEach(handler => handler(this.length.valueOf()));
-        this.recalculateIndexMap();
+        this.addSongQueue(this.currIndex + 1, songQueue);
     }
 
     public addIndexChangeEventHandler(eventHandler: (newIndex: number) => void)
