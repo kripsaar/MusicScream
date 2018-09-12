@@ -28,6 +28,20 @@ export class SongList
         return "title" in object;
     }
 
+    private containsSongList(songList : SongList) : boolean
+    {
+        if (this == songList)
+            return true;
+        for (var element of this.internalList)
+        {
+            if (this.isSong(element))
+                continue;
+            if (element.containsSongList(songList))
+                return true;
+        }
+        return false;
+    }
+
     private recalculateIndexMap()
     {
         var indexMap : Map<number, number> = new Map();
@@ -285,6 +299,8 @@ export class SongList
     {
         if (index < 0)
             return;
+        if (songList.containsSongList(this))
+            return;
         if (index >= this.length)
             this.queueSongList(songList);
 
@@ -310,6 +326,8 @@ export class SongList
 
     public queueSongList(songList : SongList)
     {
+        if (songList.containsSongList(this))
+            return;
         this.internalList.push(songList);
         this.flattenInternalList();
         songList.addLengthChangeEventHandler(this.handleLengthChange);
