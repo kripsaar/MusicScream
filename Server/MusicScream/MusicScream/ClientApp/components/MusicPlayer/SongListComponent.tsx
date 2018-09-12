@@ -78,7 +78,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
         return <div style={{display: "flex", flexDirection: "column"}}>
             <ul className="selection-list">
                 {
-                    this.state.songQueue.getQueue().map((song, index) =>
+                    this.state.songQueue.getFlatList().map((song, index) =>
                         <li key={"song"+song.id} className="hidden-parent list-item"
                             style={{background: this.state.currIndex == index ? "#C6EDFF" : undefined}}
                             onClick={() => 

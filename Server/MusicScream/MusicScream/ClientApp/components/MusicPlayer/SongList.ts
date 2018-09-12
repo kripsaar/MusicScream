@@ -117,7 +117,7 @@ export class SongList
             }
             else
             {
-                flatList.concat(element.getQueue());
+                flatList.concat(element.getFlatList());
                 var limit = index + element.getLength();
                 for (var i = index; i < limit; i++)
                     indexMap.set(i, internalIndex);
@@ -133,7 +133,7 @@ export class SongList
         this.indexMapInverse = indexMapInverse;
     }
 
-    public getQueue() : Song[]
+    public getFlatList() : Song[]
     {
         return this.flatList;
     }
@@ -281,12 +281,12 @@ export class SongList
         element.addSongs(index - firstIndex, ...songs);
     }
 
-    private addSongQueue(index: number, songQueue: SongList)
+    private addSongList(index: number, songList: SongList)
     {
         if (index < 0)
             return;
         if (index >= this.length)
-            this.queueSongQueue(songQueue);
+            this.queueSongList(songList);
 
         var internalIndex = this.indexMap.get(index);
         if (!internalIndex)
@@ -297,7 +297,7 @@ export class SongList
             return;
         if (index == firstIndex)
         {
-            this.internalList.splice(internalIndex, 0, songQueue);
+            this.internalList.splice(internalIndex, 0, songList);
             this.flattenInternalList();
             return;
         }
@@ -305,14 +305,14 @@ export class SongList
         if (this.isSong(element))
             return;
 
-        this.addSongQueue(index, songQueue);
+        this.addSongList(index, songList);
     }
 
-    public queueSongQueue(songQueue : SongList)
+    public queueSongList(songList : SongList)
     {
-        this.internalList.push(songQueue);
+        this.internalList.push(songList);
         this.flattenInternalList();
-        songQueue.addLengthChangeEventHandler(this.handleLengthChange);
+        songList.addLengthChangeEventHandler(this.handleLengthChange);
     }
 
     public queueSongs(...songs : Song[])
@@ -336,9 +336,9 @@ export class SongList
         this.addSongs(this.currIndex + 1, ...songs);
     }
 
-    public playSongQueueNext(songQueue: SongList)
+    public playSongListNext(songList: SongList)
     {
-        this.addSongQueue(this.currIndex + 1, songQueue);
+        this.addSongList(this.currIndex + 1, songList);
     }
 
     public addIndexChangeEventHandler(eventHandler: (newIndex: number) => void)
