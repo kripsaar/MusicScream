@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { MusicPlayer, MusicPlayerInstance } from "./MusicPlayer";
 import { Communication } from '../../Communication';
-import { SongQueue } from './SongQueue';
+import { SongList } from './SongList';
 
-interface ISongListState
+interface ISongListComponentState
 {
-    songQueue : SongQueue;
+    songQueue : SongList;
     songState: string;
     currIndex: number;
 }
@@ -14,14 +14,14 @@ const STOP_STATE : string = "stop";
 const PLAY_STATE : string = "play";
 const PAUSE_STATE : string = "pause";
 
-export class SongList extends React.Component<{}, ISongListState>
+export class SongListComponent extends React.Component<{}, ISongListComponentState>
 {
     musicPlayer = MusicPlayerInstance;
 
-    constructor(props: {}, state: ISongListState)
+    constructor(props: {}, state: ISongListComponentState)
     {
         super(props, state);
-        this.state = {songQueue: new SongQueue([]), songState: STOP_STATE, currIndex: 0}
+        this.state = {songQueue: new SongList([]), songState: STOP_STATE, currIndex: 0}
     }
 
     public componentDidMount()
@@ -55,7 +55,7 @@ export class SongList extends React.Component<{}, ISongListState>
             {
                 if (data.songs)
                 {
-                    var songQueue = new SongQueue(data.songs);
+                    var songQueue = new SongList(data.songs);
                     this.setState({songQueue: songQueue});
                     this.musicPlayer.songQueue = songQueue;
                     songQueue.addIndexChangeEventHandler(this.handleIndexChange);

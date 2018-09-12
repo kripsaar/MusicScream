@@ -1,8 +1,8 @@
 import { Song } from "../../Models/SongModel";
 
-export class SongQueue
+export class SongList
 {
-    private internalList : Array<Song | SongQueue> = [];
+    private internalList : Array<Song | SongList> = [];
     private flatList: Song[] = [];
     private length: number = 0;
     private currIndex : number = 0;
@@ -23,7 +23,7 @@ export class SongQueue
         return this.length.valueOf();
     }
 
-    private isSong(object: Song | SongQueue) : object is Song
+    private isSong(object: Song | SongList) : object is Song
     {
         return "title" in object;
     }
@@ -281,7 +281,7 @@ export class SongQueue
         element.addSongs(index - firstIndex, ...songs);
     }
 
-    private addSongQueue(index: number, songQueue: SongQueue)
+    private addSongQueue(index: number, songQueue: SongList)
     {
         if (index < 0)
             return;
@@ -308,7 +308,7 @@ export class SongQueue
         this.addSongQueue(index, songQueue);
     }
 
-    public queueSongQueue(songQueue : SongQueue)
+    public queueSongQueue(songQueue : SongList)
     {
         this.internalList.push(songQueue);
         this.flattenInternalList();
@@ -336,7 +336,7 @@ export class SongQueue
         this.addSongs(this.currIndex + 1, ...songs);
     }
 
-    public playSongQueueNext(songQueue: SongQueue)
+    public playSongQueueNext(songQueue: SongList)
     {
         this.addSongQueue(this.currIndex + 1, songQueue);
     }

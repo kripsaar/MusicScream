@@ -2,7 +2,7 @@ import * as React from 'react';
 import {Communication} from '../../Communication';
 import {Song} from '../../Models/SongModel';
 import { MusicPlayerControls } from './MusicPlayerControls';
-import { SongQueue } from './SongQueue';
+import { SongList } from './SongList';
 
 const STOP_STATE : string = "stop";
 const PLAY_STATE : string = "play";
@@ -11,7 +11,7 @@ const PAUSE_STATE : string = "pause";
 export class MusicPlayer
 {
     public audioElement : HTMLAudioElement;
-    public songQueue : SongQueue;
+    public songQueue : SongList;
 
     selectedSong : Song | null;
     nextSong: Song | undefined;
@@ -21,7 +21,7 @@ export class MusicPlayer
 
     constructor()
     {
-        this.songQueue = new SongQueue([]);
+        this.songQueue = new SongList([]);
         this.selectedSong = null;
         this.nextSong = undefined;
         this.previousSong = undefined;
