@@ -214,3 +214,43 @@
     text-decoration: underline;
     cursor: pointer;
 }
+
+.drag-element
+{
+    height: 40px;
+    width: 300px;
+    border: 2px solid red;
+    display: flex;
+    align-items: center;
+}
+
+.drag-element-empty
+{
+    height: 40px;
+    width: 300px;
+    border: 0;
+    position: relative;
+}
+
+.drag-element-frame
+{
+    flex: 0 1 40px;
+    width: 300px;
+    border: 0 !important;
+    position: relative;
+}
+
+.hidden-drag
+{
+    height: 0;
+    width: 300px;
+    border: 0;
+    overflow: hidden;
+    flex: 0 0 0;
+}
+
+.drag-button
+{
+    font-size: 2em;
+    margin: 5px;
+}
