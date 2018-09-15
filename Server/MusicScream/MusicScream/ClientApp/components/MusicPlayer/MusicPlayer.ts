@@ -11,7 +11,7 @@ const PAUSE_STATE : string = "pause";
 export class MusicPlayer
 {
     public audioElement : HTMLAudioElement;
-    public songQueue : SongList;
+    public songList : SongList;
 
     selectedSong : Song | null;
     nextSong: Song | undefined;
@@ -21,7 +21,7 @@ export class MusicPlayer
 
     constructor()
     {
-        this.songQueue = new SongList([]);
+        this.songList = new SongList([]);
         this.selectedSong = null;
         this.nextSong = undefined;
         this.previousSong = undefined;
@@ -50,7 +50,7 @@ export class MusicPlayer
         this.selectedSong = song;
         this.audioElement.setAttribute("src", this.getSongUrl(song));
         if (queueIndex)
-            this.songQueue.selectSong(queueIndex);
+            this.songList.selectSong(queueIndex);
     }
 
     public togglePlayPause()
@@ -59,7 +59,7 @@ export class MusicPlayer
             return;
         if (!this.selectedSong)
         {
-            this.selectSong(this.songQueue.getCurrentSong());
+            this.selectSong(this.songList.getCurrentSong());
         }
         if (this.audioElement.paused)
             this.audioElement.play();
@@ -71,14 +71,14 @@ export class MusicPlayer
     {
         if (!this.audioElement)
             return;
-        this.selectSong(this.songQueue.getNextSong());
+        this.selectSong(this.songList.getNextSong());
     }
 
     public playPreviousSong()
     {
         if (!this.audioElement)
             return;
-        this.selectSong(this.songQueue.getPreviousSong());
+        this.selectSong(this.songList.getPreviousSong());
     }
 
     // public oldrender()

@@ -5,7 +5,7 @@ import { SongList } from './SongList';
 
 interface ISongListComponentState
 {
-    songQueue : SongList;
+    songList : SongList;
     songState: string;
     currIndex: number;
 }
@@ -21,7 +21,12 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
     constructor(props: {}, state: ISongListComponentState)
     {
         super(props, state);
-        this.state = {songQueue: new SongList([]), songState: STOP_STATE, currIndex: 0}
+        this.state = 
+        {   
+            songList: new SongList([]),
+            songState: STOP_STATE,
+            currIndex: 0
+        }
     }
 
     public componentDidMount()
@@ -32,7 +37,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
 
     public componentWillUnmount()
     {
-        this.state.songQueue.removeIndexChangeEventHandler(this.handleIndexChange);
+        this.state.songList.removeIndexChangeEventHandler(this.handleIndexChange);
     }
 
     private handleIndexChange = (newIndex: number) => 
@@ -55,10 +60,10 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
             {
                 if (data.songs)
                 {
-                    var songQueue = new SongList(data.songs);
-                    this.setState({songQueue: songQueue});
-                    this.musicPlayer.songQueue = songQueue;
-                    songQueue.addIndexChangeEventHandler(this.handleIndexChange);
+                    var songList = new SongList(data.songs);
+                    this.setState({songList: songList});
+                    this.musicPlayer.songList = songList;
+                    songList.addIndexChangeEventHandler(this.handleIndexChange);
                 }
             }
         );
@@ -66,7 +71,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
 
     private selectSong(queueIndex: number)
     {
-        var song = this.state.songQueue.selectSong(queueIndex);
+        var song = this.state.songList.selectSong(queueIndex);
         if (!song)
             return;
         if (this.musicPlayer)
@@ -78,7 +83,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
         return <div style={{display: "flex", flexDirection: "column"}}>
             <ul className="selection-list">
                 {
-                    this.state.songQueue.getFlatList().map((song, index) =>
+                    this.state.songList.getFlatList().map((song, index) =>
                         <li key={"song"+song.id} className="hidden-parent list-item"
                             style={{background: this.state.currIndex == index ? "#C6EDFF" : undefined}}
                             onClick={() => 
