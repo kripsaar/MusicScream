@@ -253,4 +253,16 @@
 {
     font-size: 2em;
     margin: 5px;
+    opacity: 0;
+}
+
+.draggable-element
+{
+    width: 100%;
+    z-index: 1;
+}
+
+.draggable-element:hover .drag-button
+{
+    opacity: 1;
 }

@@ -145,14 +145,14 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                             className={"drag-element"}
                                             style={{opacity: currentlyDraggingId == index ? 0 : undefined}}
                                         >
-                                            <div style={{display: "flex", alignItems: "center"}}>
+                                            <div className="draggable-element" style={{display: "flex", alignItems: "center"}}>
                                                 <span>
                                                     <Draggable type="row3" id={index}>
                                                         {({events}) => (
                                                             <div 
                                                                 className="glyphicon glyphicon-option-vertical drag-button"
                                                                 {...events}
-                                                                style={{zIndex: 1, cursor: "grab"}}
+                                                                style={{cursor: "grab"}}
                                                             />
                                                         )}
                                                     </Draggable>
@@ -176,7 +176,10 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                                         cursor: "grabbing"
                                                     }}
                                                 >
-                                                    <span className="glyphicon glyphicon-option-vertical drag-button"/>
+                                                    <span 
+                                                        className="glyphicon glyphicon-option-vertical drag-button"
+                                                        style={{opacity: 1}}
+                                                    />
                                                     <span>
                                                         {element}
                                                     </span>
