@@ -83,12 +83,15 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
 
     private reorderList(currIndex: number | string | undefined, newIndex: number)
     {
-        // TODO: Remake this! Based on currIndex vs new size of list!
         if (!(typeof currIndex == 'number'))
+            return;
+        if (currIndex == newIndex || currIndex + 1 == newIndex)
             return;
         var element = this.state.testList[currIndex];
         var list = this.state.testList;
         list.splice(currIndex, 1);
+        if (currIndex < newIndex)
+            newIndex--;
         if (newIndex < list.length)
             list.splice(newIndex, 0, element);
         else
