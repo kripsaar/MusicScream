@@ -131,7 +131,7 @@ export class SongList
             }
             else
             {
-                flatList.concat(element.getFlatList());
+                flatList.push(...element.getFlatList());
                 var limit = index + element.getLength();
                 for (var i = index; i < limit; i++)
                     indexMap.set(i, internalIndex);
@@ -343,8 +343,8 @@ export class SongList
             internalIndex++;
         }
 
-        this.internalList.concat(songs);
-        this.flatList.concat(songs);
+        this.internalList.push(...songs);
+        this.flatList.push(...songs);
         this.length += songs.length;
         this.lengthChangeEventHandlers.forEach(handler => handler(this.length.valueOf()));
     }
