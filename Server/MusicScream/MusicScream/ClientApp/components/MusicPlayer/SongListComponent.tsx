@@ -3,10 +3,12 @@ import { MusicPlayer, MusicPlayerInstance } from "./MusicPlayer";
 import { Communication } from '../../Communication';
 import { SongList } from './SongList';
 import { Draggable, Droppable, DragComponent, DragState } from "react-dragtastic";
+import { SongListContainer } from './SongListContainer';
 
 interface ISongListComponentState
 {
     songList : SongList;
+    songListContainer: SongListContainer;
     songState: string;
     currIndex: number;
     testList : string[];
@@ -23,9 +25,11 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
     constructor(props: {}, state: ISongListComponentState)
     {
         super(props, state);
+        var songList = new SongList([]);
         this.state = 
         {   
-            songList: new SongList([]),
+            songList: songList,
+            songListContainer: new SongListContainer(songList),
             songState: STOP_STATE,
             currIndex: 0
             , testList: ["One", "Two", "Three"]
@@ -64,7 +68,14 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                 if (data.songs)
                 {
                     var songList = new SongList(data.songs);
-                    this.setState({songList: songList});
+                    var externalSongList = new SongList(data.songs.slice(0, 2), "External Song List");
+                    var internalSongList = new SongList(data.songs.slice(3), "Internal Song List");
+                    var deepSongList = new SongList(data.songs.slice(0, 3), "Deeper Song List");
+                    internalSongList.queueSongList(deepSongList);
+                    internalSongList.queueSongs(...data.songs.slice(4, 5));
+                    externalSongList.queueSongList(internalSongList);
+                    var songListContainer = new SongListContainer(externalSongList);
+                    this.setState({songList: songList, songListContainer: songListContainer});
                     this.musicPlayer.songList = songList;
                     songList.addIndexChangeEventHandler(this.handleIndexChange);
                 }
@@ -102,6 +113,38 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
     public render()
     {
         return <div style={{display: "flex", flexDirection: "column"}}>
+
+            <ul className="selection-list">
+                {
+                    this.state.songListContainer.getFlatList().map((element, index) =>
+                        <li key={"element"+index} className="hidden-parent list-item"
+                            style={{background: this.state.currIndex == index ? "#C6EDFF" : undefined}}
+                            onClick={() => 
+                            {
+                                if (SongListContainer.isSong(element))
+                                    this.state.songListContainer.selectSong(index);
+                                else if (SongListContainer.isSongListMarker(element))
+                                {
+                                    this.state.songListContainer.shrinkSongList(index);
+                                    this.setState({songListContainer: this.state.songListContainer});
+                                }
+                                else if (SongListContainer.isSongListContainer(element))
+                                {
+                                    this.state.songListContainer.expandSongList(index);
+                                    this.setState({songListContainer: this.state.songListContainer});
+                                }
+                            }}
+                            >
+                            {(index + 1) + ". " 
+                                + (SongListContainer.isSong(element) ? ((element.artists.length > 0 ? element.artists.map(artist => artist.name).join(", ") : "Unknown Artist") + " - " + element.title)
+                                : (SongListContainer.isSongListMarker(element) ? (element.isStart() ? "[Start] " : "[End] ") + element.getSongListContainer().getName()
+                                : "[Folded] " + element.getName()))}
+                        </li>
+                    )
+                }
+            </ul>
+
+            <div style={{height: "100px", width: "100%"}}/>
 
             <div style={{display: "flex", flexDirection: "column"}}>
                 {
