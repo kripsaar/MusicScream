@@ -24,6 +24,12 @@ export class SongList
     {
         return this.name;
     }
+
+    public getInternalList() : Array<Song | SongList>
+    {
+        return this.internalList;
+    }
+
     public getLength() : number
     {
         return this.length.valueOf();
