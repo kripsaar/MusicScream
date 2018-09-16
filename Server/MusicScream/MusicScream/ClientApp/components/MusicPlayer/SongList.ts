@@ -2,6 +2,7 @@ import { Song } from "../../Models/SongModel";
 
 export class SongList
 {
+    private name : string;
     private internalList : Array<Song | SongList> = [];
     private flatList: Song[] = [];
     private length: number = 0;
@@ -12,12 +13,17 @@ export class SongList
     private indexChangeEventHandlers: Array<(newIndex : number) => void> = [];
     private lengthChangeEventHandlers: Array<(newLength: number) => void> = [];
 
-    constructor(songList : Song[])
+    constructor(songList : Song[], name = "Unnamed Playlist")
     {
+        this.name = name;
         this.internalList = songList;
         this.flattenInternalList();
     }
 
+    public getName() : string
+    {
+        return this.name;
+    }
     public getLength() : number
     {
         return this.length.valueOf();
