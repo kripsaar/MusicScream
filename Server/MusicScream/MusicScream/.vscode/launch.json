@@ -50,11 +50,11 @@
         "webRoot": "${workspaceFolder}",
         "pathMappings": [
             {
-                "url": "http://localhost:61820/dist/..\\..\\./ClientApp/",
+                "url": "http://localhost:61820/ClientApp/",
                 "path": "${workspaceFolder}\\ClientApp/"
             },
             {
-                "url": "http://localhost:61820/dist/..\\..\\./",
+                "url": "http://localhost:61820/",
                 "path": "${workspaceFolder}/"
             }
         ]
