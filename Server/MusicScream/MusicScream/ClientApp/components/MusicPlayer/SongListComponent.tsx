@@ -110,45 +110,23 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
         this.setState({testList: list});
     }
 
+    private moveSongListContainerElement(currIndex: number | string | undefined, newIndex: number)
+    {
+        if (!(typeof currIndex == 'number'))
+            return;
+        if (currIndex == newIndex || currIndex + 1 == newIndex)
+            return;
+        this.state.songListContainer.moveElement(currIndex, newIndex);
+        this.setState({songListContainer: this.state.songListContainer});
+    }
+
     public render()
     {
         return <div style={{display: "flex", flexDirection: "column"}}>
 
-            <ul className="selection-list">
+            <div className="selection-list" style={{display: "flex", flexDirection: "column"}}>
                 {
                     this.state.songListContainer.getFlatList().map((element, index) =>
-                        <li key={"element"+index} className="hidden-parent list-item"
-                            style={{background: this.state.currIndex == index ? "#C6EDFF" : undefined}}
-                            onClick={() => 
-                            {
-                                if (SongListContainer.isSong(element))
-                                    this.state.songListContainer.selectSong(index);
-                                else if (SongListContainer.isSongListMarker(element))
-                                {
-                                    this.state.songListContainer.shrinkSongList(index);
-                                    this.setState({songListContainer: this.state.songListContainer});
-                                }
-                                else if (SongListContainer.isSongListContainer(element))
-                                {
-                                    this.state.songListContainer.expandSongList(index);
-                                    this.setState({songListContainer: this.state.songListContainer});
-                                }
-                            }}
-                            >
-                            {(index + 1) + ". " 
-                                + (SongListContainer.isSong(element) ? ((element.artists.length > 0 ? element.artists.map(artist => artist.name).join(", ") : "Unknown Artist") + " - " + element.title)
-                                : (SongListContainer.isSongListMarker(element) ? (element.isStart() ? "[Start] " : "[End] ") + element.getSongListContainer().getName()
-                                : "[Folded] " + element.getName()))}
-                        </li>
-                    )
-                }
-            </ul>
-
-            <div style={{height: "100px", width: "100%"}}/>
-
-            <div style={{display: "flex", flexDirection: "column"}}>
-                {
-                    this.state.testList.map((element, index) =>
                         <DragState>
                             {({currentlyDraggingId, isDragging, currentlyHoveredDroppableId}) => (
                                 <div>
@@ -158,7 +136,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                             && currentlyHoveredDroppableId != undefined)
                                         ? " hidden-drag" : "")}
                                     >
-                                        <Droppable accepts="row3" id={index} onDrop={() => this.reorderList(currentlyDraggingId, index)}>
+                                        <Droppable accepts="draggableList" id={index} onDrop={() => this.moveSongListContainerElement(currentlyDraggingId, index)}>
                                             {({events: dropEvents, isOver}) => (
                                                 <div 
                                                     {...dropEvents}
@@ -169,7 +147,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                                         position: "absolute",
                                                         top: (isOver && currentlyDraggingId != index) ? "-25%" : "-50%",
                                                         opacity: 0,
-                                                        zIndex: isDragging ? 4 : undefined,
+                                                        zIndex: isDragging ? 4 : -1,
                                                         cursor: isDragging ? "grabbing" : undefined
                                                     }}
                                                 />
@@ -177,46 +155,67 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                         </Droppable>
                                         {isDragging && (
                                             <div 
-                                                className={"drag-element" 
+                                                className={"draggable-list-item-empty" 
                                                     + ((currentlyHoveredDroppableId != index
                                                         || currentlyDraggingId == index)
                                                     ? " hidden-drag" : "")}
-                                                style={{opacity: 0}}
                                             />
                                         )}
                                         <div 
-                                            className={"drag-element"}
+                                            className={"draggable-list-item"}
                                             style={{opacity: currentlyDraggingId == index ? 0 : undefined}}
                                         >
-                                            <div className="draggable-element" style={{display: "flex", alignItems: "center"}}>
+                                            <div className="draggable-element" style={{display: "flex", alignItems: "center"}}
+                                                onClick={() => 
+                                                {
+                                                    if (SongListContainer.isSong(element))
+                                                        this.state.songListContainer.selectSong(index);
+                                                    else if (SongListContainer.isSongListMarker(element))
+                                                    {
+                                                        this.state.songListContainer.shrinkSongList(index);
+                                                        this.setState({songListContainer: this.state.songListContainer});
+                                                    }
+                                                    else if (SongListContainer.isSongListContainer(element))
+                                                    {
+                                                        this.state.songListContainer.expandSongList(index);
+                                                        this.setState({songListContainer: this.state.songListContainer});
+                                                    }
+                                                }}
+                                            >
                                                 <span>
-                                                    <Draggable type="row3" id={index}>
+                                                    <Draggable type="draggableList" id={index}>
                                                         {({events}) => (
                                                             <div 
                                                                 className="glyphicon glyphicon-option-vertical drag-button"
                                                                 {...events}
+                                                                onClick={(event) => {event.stopPropagation()}}
                                                                 style={{cursor: "grab"}}
                                                             />
                                                         )}
                                                     </Draggable>
                                                 </span>
                                                 <span>
-                                                    {element}
+                                                    {(index + 1) + ". " 
+                                    + (SongListContainer.isSong(element) ? ((element.artists.length > 0 ? element.artists.map(artist => artist.name).join(", ") : "Unknown Artist") + " - " + element.title)
+                                    : (SongListContainer.isSongListMarker(element) ? (element.isStart() ? "[Start] " : "[End] ") + element.getSongListContainer().getName()
+                                    : "[Folded] " + element.getName()))}
                                                 </span>
                                             </div>
                                         </div>
                                         <DragComponent for={index}>
                                             {({x, y}) => (
                                                 <div
-                                                    className={"drag-element"}
+                                                    className={"dragging-list-item"}
                                                     style=
                                                     {{
                                                         position: "fixed",
-                                                        left: x - 20,
-                                                        top: y - 20,
+                                                        width: "auto",
+                                                        left: x - 26,
+                                                        top: y - 23,
                                                         zIndex: 3,
                                                         backgroundColor: "white",
-                                                        cursor: "grabbing"
+                                                        cursor: "grabbing",
+                                                        boxSizing: "border-box"
                                                     }}
                                                 >
                                                     <span 
@@ -224,29 +223,34 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                                         style={{opacity: 1}}
                                                     />
                                                     <span>
-                                                        {element}
+                                                        {(index + 1) + ". " 
+                                    + (SongListContainer.isSong(element) ? ((element.artists.length > 0 ? element.artists.map(artist => artist.name).join(", ") : "Unknown Artist") + " - " + element.title)
+                                    : (SongListContainer.isSongListMarker(element) ? (element.isStart() ? "[Start] " : "[End] ") + element.getSongListContainer().getName()
+                                    : "[Folded] " + element.getName()))}
                                                     </span>
                                                 </div>
                                             )}
                                         </DragComponent>
                                     </div>
-                                    {(isDragging && index == this.state.testList.length -1) ? 
-                                        <div className={"drag-element-empty" 
+                                    {(isDragging && index == this.state.songListContainer.getFlatList().length -1) ? 
+                                        <div className={"draggable-list-item-empty" 
                                             + ((currentlyHoveredDroppableId != (index + 1))
                                             ? " hidden-drag" : "")
                                             }
                                             style={{ overflow: "visible" }}
                                         >
-                                            <Droppable accepts="row3" id={this.state.testList.length} onDrop={() => this.reorderList(currentlyDraggingId, index + 1)}>
+                                            <Droppable accepts="draggableList" id={this.state.songListContainer.getFlatList().length}
+                                                onDrop={() => this.moveSongListContainerElement(currentlyDraggingId, index + 1)}
+                                            >
                                                 {({events, isOver}) => (
                                                     <div 
                                                         {...events}
                                                         style=
                                                         {{
-                                                            height: isOver ? "80px" : "40px",
+                                                            height: isOver ? "69px" : "23px",
                                                             width: "100%",
                                                             position: "absolute",
-                                                            top: "-20px",
+                                                            top: "-23px",
                                                             opacity: 1,
                                                             zIndex: 4,
                                                             cursor: "grabbing",

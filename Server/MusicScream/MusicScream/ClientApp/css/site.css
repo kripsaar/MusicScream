@@ -215,6 +215,33 @@
     cursor: pointer;
 }
 
+.draggable-list-item{
+    border-bottom: 1px solid #ccc;
+    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: hidden;
+    padding: 5px 10px;
+}
+
+.draggable-list-item-empty{
+    height: 46px;
+    border-bottom: 1px solid #ccc;
+    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: hidden;
+    position: relative;
+}
+
+.dragging-list-item{
+    border: 1px solid #ccc;
+    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: hidden;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+}
+
 .drag-element
 {
     height: 40px;
@@ -234,8 +261,8 @@
 
 .drag-element-frame
 {
-    flex: 0 1 40px;
-    width: 300px;
+    flex: 1 1 0px;
+    /* width: 300px; */
     border: 0 !important;
     position: relative;
 }
@@ -243,7 +270,7 @@
 .hidden-drag
 {
     height: 0;
-    width: 300px;
+    width: 100%;
     border: 0;
     overflow: hidden;
     flex: 0 0 0;
@@ -251,7 +278,7 @@
 
 .drag-button
 {
-    font-size: 2em;
+    font-size: 1.5em;
     margin: 5px;
     opacity: 0;
 }
