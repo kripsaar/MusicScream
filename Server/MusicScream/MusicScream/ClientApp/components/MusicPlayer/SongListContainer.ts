@@ -20,9 +20,9 @@ export class SongListContainer
     public constructor(songList : SongList, parent : SongListContainer | null = null)
     {
         this.songList = songList;
-        this.flatList = this.flattenSongList(songList);
         this.parent = parent;
         this.depth = parent == null ? 0 : parent.depth + 1;
+        this.flatList = this.flattenSongList(songList);
     }
 
     public getName() : string
@@ -118,6 +118,7 @@ export class SongListContainer
         });
         this.indexToSongListIndexMap = indexToSongListIndexMap;
         this.indexToSongListContainerMap = indexToSongListContainerMap;
+        this.indexToSongListContainerStartMap = indexToSongListContainerStartMap;
         return flatList;
     }
 
@@ -161,7 +162,7 @@ export class SongListContainer
         var targetSongListContainer = this.indexToSongListContainerMap.get(index);
         var targetIndex = this.indexToSongListContainerStartMap.get(index);
         if (targetSongListContainer != this && targetSongListContainer != null && targetIndex != null)
-            targetSongListContainer.shrinkSongList(targetIndex);
+            targetSongListContainer.shrinkSongList(index - targetIndex);
         this.recalculateSongListContainerMap();
     }
 
@@ -175,11 +176,10 @@ export class SongListContainer
             ...(element.getFlatList()),
             element.endMarker
         );
-        index++;
         var targetSongListContainer = this.indexToSongListContainerMap.get(index);
         var targetIndex = this.indexToSongListContainerStartMap.get(index);
         if (targetSongListContainer != this && targetSongListContainer != null && targetIndex != null)
-            targetSongListContainer.expandSongList(targetIndex);
+            targetSongListContainer.expandSongList(index - targetIndex);
         this.recalculateSongListContainerMap();
     }
 
