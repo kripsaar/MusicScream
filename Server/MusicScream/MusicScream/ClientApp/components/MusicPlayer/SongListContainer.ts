@@ -194,6 +194,61 @@ export class SongListContainer
         return this.songList.selectSong(songListIndex);
     }
 
+    public moveElement(index : number, newIndex: number)
+    {
+        var element = this.flatList[index];
+        if (SongListContainer.isSongListMarker(element))
+        {
+            return;
+        }
+        var oldLength = this.flatList.length;
+        this.removeElement(index, true);
+        if (index < newIndex)
+            newIndex -= oldLength - this.flatList.length;
+        this.addElement(newIndex, element, true);
+    }
+
+    private addElement(index : number, element : SongListContainerElement, recalculateMaps: boolean = true)
+    {
+        if (SongListContainer.isSongListMarker(element))
+            return;
+
+        if (index >= this.flatList.length)
+            this.flatList.push(element);
+        else
+            this.flatList.splice(index, 0, element);
+
+        var targetSongListContainer = this.indexToSongListContainerMap.get(index);
+        var targetIndex = this.indexToSongListContainerStartMap.get(index);
+        if (targetSongListContainer != this && targetSongListContainer != null && targetIndex != null)
+            targetSongListContainer.addElement(index - targetIndex, element, recalculateMaps);
+
+        if (recalculateMaps)
+            this.recalculateSongListContainerMap();
+    }
+
+    private removeElement(index : number, recalculateMaps : boolean = true)
+    {
+        var element = this.flatList[index];
+        if (SongListContainer.isSongListMarker(element) && !element.isStart())
+            return;
+        if (SongListContainer.isSongListMarker(element) && element.isStart())
+        {
+            this.flatList.splice(index, element.getSongListContainer().getLength() + 2);
+        }
+        else
+        {
+            this.flatList.splice(index, 1);
+        }
+        var targetSongListContainer = this.indexToSongListContainerMap.get(index);
+        var targetIndex = this.indexToSongListContainerStartMap.get(index);
+        if (targetSongListContainer != this && targetSongListContainer != null && targetIndex != null)
+            targetSongListContainer.removeElement(index - targetIndex, recalculateMaps);
+
+        if (recalculateMaps)
+            this.recalculateSongListContainerMap();
+    }
+
 }
 
 export class SongListMarker
