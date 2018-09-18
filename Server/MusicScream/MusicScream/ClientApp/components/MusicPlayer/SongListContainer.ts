@@ -216,18 +216,40 @@ export class SongListContainer
 
     private addElement(index : number, element : SongListContainerElement, recalculateMaps: boolean = true)
     {
+        if (index < 0)
+            throw "Index out of bounds when adding element to SongListContainer!";
         if (SongListContainer.isSongListMarker(element))
             return;
 
         if (index >= this.flatList.length)
+        {
             this.flatList.push(element);
-        else
-            this.flatList.splice(index, 0, element);
-
+            if (SongListContainer.isSong(element))
+                this.songList.queueSongs(element);
+            else
+                this.songList.queueSongList(element.getSongList());
+            if (recalculateMaps)
+                this.recalculateSongListContainerMap();
+            return;
+        }
+        this.flatList.splice(index, 0, element);
         var targetSongListContainer = this.indexToSongListContainerMap.get(index);
         var targetIndex = this.indexToSongListContainerStartMap.get(index);
         if (targetSongListContainer != this && targetSongListContainer != null && targetIndex != null)
+        {
             targetSongListContainer.addElement(index - targetIndex, element, recalculateMaps);
+        }
+        else
+        {
+            var songListIndex = this.indexToSongListIndexMap.get(index);
+            if (songListIndex != null)
+            {
+                if (SongListContainer.isSong(element))
+                    this.songList.addSongs(songListIndex, element);
+                else
+                    this.songList.addSongList(songListIndex, element.getSongList());
+            }
+        }
 
         if (recalculateMaps)
             this.recalculateSongListContainerMap();
@@ -235,6 +257,8 @@ export class SongListContainer
 
     private removeElement(index : number, recalculateMaps : boolean = true)
     {
+        if (index < 0 || index >= this.flatList.length)
+            throw "Index out of bounds removing element from SongListContainer!";
         var element = this.flatList[index];
         if (SongListContainer.isSongListMarker(element) && !element.isStart())
             return;
@@ -250,6 +274,16 @@ export class SongListContainer
         var targetIndex = this.indexToSongListContainerStartMap.get(index);
         if (targetSongListContainer != this && targetSongListContainer != null && targetIndex != null)
             targetSongListContainer.removeElement(index - targetIndex, recalculateMaps);
+        else
+        {
+            var songListIndex = this.indexToSongListIndexMap.get(index);
+            if (songListIndex == null)
+                throw "Index [" + index + "] does not produce valid songListIndex!";
+            if (SongListContainer.isSong(element))
+                this.songList.removeSong(songListIndex);
+            else
+                this.songList.removeSongList(songListIndex);
+        }
 
         if (recalculateMaps)
             this.recalculateSongListContainerMap();
