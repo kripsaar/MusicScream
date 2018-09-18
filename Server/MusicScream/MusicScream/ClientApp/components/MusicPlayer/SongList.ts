@@ -156,7 +156,7 @@ export class SongList
         });
         this.flatList = flatList;
         this.length = index;
-        this.lengthChangeEventHandlers.forEach(handler => handler(this.length.valueOf()));
+        this.fireLengthChangeEvent();
         this.indexMap = indexMap;
         this.indexMapInverse = indexMapInverse;
     }
@@ -237,7 +237,10 @@ export class SongList
             return;
         var element = this.internalList[internalIndex];
         if (this.isSong(element))
+        {
             this.internalList.splice(internalIndex, 1);
+            this.fireLengthChangeEvent();
+        }
         else
         {
             var firstIndex = this.indexMapInverse.get(internalIndex);
@@ -299,7 +302,7 @@ export class SongList
             this.flatList.splice(index, 0, ...songs);
             this.recalculateIndexMap();
             this.length += songs.length;
-            this.lengthChangeEventHandlers.forEach(handler => handler(this.length.valueOf()));
+            this.fireLengthChangeEvent();
             return;
         }
 
@@ -329,6 +332,8 @@ export class SongList
         {
             this.internalList.splice(internalIndex, 0, songList);
             this.flattenInternalList();
+            songList.addLengthChangeEventHandler(this.handleLengthChange);
+
             return;
         }
 
@@ -360,7 +365,7 @@ export class SongList
         this.internalList.push(...songs);
         this.flatList.push(...songs);
         this.length += songs.length;
-        this.lengthChangeEventHandlers.forEach(handler => handler(this.length.valueOf()));
+        this.fireLengthChangeEvent();
     }
 
     public playSongsNext(...songs: Song[])
@@ -402,5 +407,10 @@ export class SongList
     private handleLengthChange = () =>
     {
         this.flattenInternalList();
+    }
+
+    private fireLengthChangeEvent()
+    {
+        this.lengthChangeEventHandlers.forEach(handler => handler(this.length.valueOf()));
     }
 }
