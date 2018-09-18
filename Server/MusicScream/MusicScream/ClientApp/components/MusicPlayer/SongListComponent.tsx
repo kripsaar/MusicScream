@@ -67,7 +67,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
             {
                 if (data.songs)
                 {
-                    var songList = new SongList(data.songs);
+                    // var songList = new SongList(data.songs);
                     var externalSongList = new SongList(data.songs.slice(0, 2), "External Song List");
                     var internalSongList = new SongList(data.songs.slice(3), "Internal Song List");
                     var deepSongList = new SongList(data.songs.slice(0, 3), "Deeper Song List");
@@ -75,6 +75,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                     internalSongList.queueSongs(...data.songs.slice(4, 5));
                     externalSongList.queueSongList(internalSongList);
                     var songListContainer = new SongListContainer(externalSongList);
+                    var songList = externalSongList;
                     this.setState({songList: songList, songListContainer: songListContainer});
                     this.musicPlayer.songList = songList;
                     songList.addIndexChangeEventHandler(this.handleIndexChange);
@@ -270,7 +271,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
             <ul className="selection-list">
                 {
                     this.state.songList.getFlatList().map((song, index) =>
-                        <li key={"song"+song.id} className="hidden-parent list-item"
+                        <li key={"song-"+song.id+"-"+index} className="hidden-parent list-item"
                             style={{background: this.state.currIndex == index ? "#C6EDFF" : undefined}}
                             onClick={() => 
                             {
@@ -281,6 +282,8 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                     )
                 }
             </ul>
+            
+            <div style={{width: "100%", height: "200px"}}/>
         </div>
     }
 }
