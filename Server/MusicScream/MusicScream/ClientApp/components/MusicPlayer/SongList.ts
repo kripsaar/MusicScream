@@ -1,9 +1,11 @@
 import { Song } from "../../Models/SongModel";
 
+type SongListElement = Song | SongList;
+
 export class SongList
 {
     private name : string;
-    private internalList : Array<Song | SongList> = [];
+    private internalList : Array<SongListElement> = [];
     private flatList: Song[] = [];
     private length: number = 0;
     private currIndex : number = 0;
@@ -25,7 +27,7 @@ export class SongList
         return this.name;
     }
 
-    public getInternalList() : Array<Song | SongList>
+    public getInternalList() : Array<SongListElement>
     {
         return this.internalList;
     }
@@ -35,7 +37,7 @@ export class SongList
         return this.length.valueOf();
     }
 
-    private isSong(object: Song | SongList) : object is Song
+    private isSong(object: SongListElement) : object is Song
     {
         return "title" in object;
     }
