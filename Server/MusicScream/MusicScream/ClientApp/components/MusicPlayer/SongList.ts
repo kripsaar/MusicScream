@@ -368,6 +368,23 @@ export class SongList
         this.fireLengthChangeEvent();
     }
 
+    public removeSongList(index : number)
+    {
+        if (index < 0 || index >= this.flatList.length)
+            throw "Index out of bounds when removing SongList from SongList!";
+        
+        var internalIndex = this.indexMap.get(index);
+        if (internalIndex == null)
+            throw "Index [" + index + "] failed to produce valid internalIndex!";
+        
+        var element = this.internalList[internalIndex];
+        if (this.isSong(element))
+            return;
+        
+        this.internalList.splice(internalIndex, 1);
+        this.flattenInternalList();
+    }
+
     public playSongsNext(...songs: Song[])
     {
         this.addSongs(this.currIndex + 1, ...songs);
