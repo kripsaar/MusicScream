@@ -281,7 +281,7 @@ export class SongList
         return this.selectSong(this.currIndex);
     }
 
-    private addSongs(index: number, ...songs: Song[])
+    public addSongs(index: number, ...songs: Song[])
     {
         if (index < 0)
             return;
@@ -312,7 +312,7 @@ export class SongList
         element.addSongs(index - firstIndex, ...songs);
     }
 
-    private addSongList(index: number, songList: SongList)
+    public addSongList(index: number, songList: SongList)
     {
         if (index < 0)
             return;
