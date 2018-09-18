@@ -97,22 +97,28 @@ export class SongListContainer
                 flatList.push(songListContainer.startMarker);
                 flatList.push(...songListContainer.getFlatList());
                 flatList.push(songListContainer.endMarker);
-                index++;
-                var limit = index + songListContainer.getLength();
-                for (var i = index; i < limit; i++)
+                indexToSongListContainerMap.set(index, this);
+                indexToSongListContainerStartMap.set(index, 0);
+                var limit = index + songListContainer.getLength() + 1;
+                for (var i = index + 1; i < limit; i++)
                 {
                     indexToSongListContainerMap.set(i, songListContainer);
                     indexToSongListContainerStartMap.set(i, index);
                 }
+                indexToSongListContainerMap.set(limit, this);
+                indexToSongListContainerStartMap.set(limit, 0);
                 var containerIndex = index;
                 index = limit;
 
                 limit = songListIndex + element.getLength();
+                indexToSongListIndexMap.set(containerIndex++, songListIndex);
                 for (var i = songListIndex; i < limit; i++)
                 {
                     indexToSongListIndexMap.set(containerIndex++, i);
                 }
+                indexToSongListIndexMap.set(limit, songListIndex);
                 songListIndex = limit;
+                index++;
             }
             internalIndex++;
         });
