@@ -87,52 +87,6 @@ export class MusicPlayer
             return;
         this.selectSong(this.songList.getPreviousSong());
     }
-
-    // public oldrender()
-    // {
-    //     return <div style={{display: "flex", flexDirection: "column"}}>
-    //         <ul className="selection-list">
-    //             {
-    //                 this.songList.map((song, index) =>
-    //                     <li key={"song"+song.id} className="hidden-parent list-item"
-    //                         style={{background: this.state.selectedSong && this.state.selectedSong.id === song.id ? "#C6EDFF" : undefined}}
-    //                         onClick={() => 
-    //                         {
-    //                             this.selectSong(song, index);
-    //                         }}>
-    //                         {(index + 1) + ". " + (song.artists.length > 0 ? song.artists.map(artist => artist.name).join(", ") : "Unknown Artist") + " - " + song.title}
-    //                     </li>
-    //                 )
-    //             }
-    //         </ul>
-    //         <hr/>
-    //         <div style={{display: "flex"}}>
-    //             <div style={{marginLeft: "auto", marginRight: "auto", height: "200px", flex: "0 0 auto"}}>
-    //                 <img 
-    //                     src={this.state.selectedSong ? this.getSongArtUrl(this.state.selectedSong) : undefined} 
-    //                     alt="Nope"
-    //                     style={{height: "100%"}}
-    //                     onClick={this.togglePlayPause.bind(this)}
-    //                 />
-    //             </div>
-    //         </div>
-    //         <MusicPlayerControls 
-    //             musicPlayer={this}
-    //             onRepeat={() => {}}
-    //             onShuffle={() => {}}
-    //         />
-    //     </div>
-    // }
-
-    // public render()
-    // {
-    //     return <audio 
-    //         ref={(audio) => this.audioElement = audio}
-    //         autoPlay
-    //         onEnded={() => this.playNextSong()}
-    //         src={this.state.selectedSong ? this.getSongUrl(this.state.selectedSong) : undefined}
-    //     />
-    // }
 }
 
 export const MusicPlayerInstance : MusicPlayer = new MusicPlayer();
