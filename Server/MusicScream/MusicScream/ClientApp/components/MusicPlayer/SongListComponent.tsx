@@ -78,7 +78,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                     var songList = externalSongList;
                     this.setState({songList: songList, songListContainer: songListContainer});
                     this.musicPlayer.songList = songList;
-                    songList.addIndexChangeEventHandler(this.handleIndexChange);
+                    songListContainer.addIndexChangeEventHandler(this.handleIndexChange);
                 }
             }
         );
