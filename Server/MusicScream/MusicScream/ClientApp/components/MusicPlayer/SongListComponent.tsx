@@ -11,7 +11,6 @@ interface ISongListComponentState
     songListContainer: SongListContainer;
     songState: string;
     currIndex: number;
-    testList : string[];
 }
 
 const STOP_STATE : string = "stop";
@@ -32,7 +31,6 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
             songListContainer: new SongListContainer(songList),
             songState: STOP_STATE,
             currIndex: 0
-            , testList: ["One", "Two", "Three"]
         }
     }
 
@@ -91,24 +89,6 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
             return;
         if (this.musicPlayer)
             this.musicPlayer.startPlayback();
-    }
-
-    private reorderList(currIndex: number | string | undefined, newIndex: number)
-    {
-        if (!(typeof currIndex == 'number'))
-            return;
-        if (currIndex == newIndex || currIndex + 1 == newIndex)
-            return;
-        var element = this.state.testList[currIndex];
-        var list = this.state.testList;
-        list.splice(currIndex, 1);
-        if (currIndex < newIndex)
-            newIndex--;
-        if (newIndex < list.length)
-            list.splice(newIndex, 0, element);
-        else
-            list.push(element);
-        this.setState({testList: list});
     }
 
     private moveSongListContainerElement(currIndex: number | string | undefined, newIndex: number)
