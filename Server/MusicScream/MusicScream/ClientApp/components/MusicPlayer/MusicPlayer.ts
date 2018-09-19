@@ -43,14 +43,21 @@ export class MusicPlayer
         return "Music/GetAlbumArt?songId=" + song.id;
     }
 
-    public selectSong(song : Song | null, queueIndex?: number)
+    private selectSong(song : Song | null)
     {
         if (!song)
             return;
         this.selectedSong = song;
         this.audioElement.setAttribute("src", this.getSongUrl(song));
-        if (queueIndex)
-            this.songList.selectSong(queueIndex);
+    }
+
+    public startPlayback()
+    {
+        var song = this.songList.getCurrentSong();
+        if (song == null)
+            return;
+        this.selectedSong = song;
+        this.audioElement.setAttribute("src", this.getSongUrl(song));
     }
 
     public togglePlayPause()
@@ -59,7 +66,7 @@ export class MusicPlayer
             return;
         if (!this.selectedSong)
         {
-            this.selectSong(this.songList.getCurrentSong());
+            this.startPlayback();
         }
         if (this.audioElement.paused)
             this.audioElement.play();

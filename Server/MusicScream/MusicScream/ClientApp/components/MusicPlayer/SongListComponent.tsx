@@ -90,7 +90,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
         if (!song)
             return;
         if (this.musicPlayer)
-            this.musicPlayer.selectSong(song, queueIndex);
+            this.musicPlayer.startPlayback();
     }
 
     private reorderList(currIndex: number | string | undefined, newIndex: number)
