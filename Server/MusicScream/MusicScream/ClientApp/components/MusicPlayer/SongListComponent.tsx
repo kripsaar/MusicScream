@@ -84,9 +84,9 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
         );
     }
 
-    private selectSong(queueIndex: number)
+    private selectSong(index: number)
     {
-        var song = this.state.songList.selectSong(queueIndex);
+        var song = this.state.songListContainer.selectSong(index);
         if (!song)
             return;
         if (this.musicPlayer)
@@ -170,7 +170,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                                 onClick={() => 
                                                 {
                                                     if (SongListContainer.isSong(element))
-                                                        this.state.songListContainer.selectSong(index);
+                                                        this.selectSong(index);
                                                     else if (SongListContainer.isSongListMarker(element))
                                                     {
                                                         this.state.songListContainer.shrinkSongList(index);
