@@ -10,19 +10,38 @@ export class SongListContainer
     private indexToSongListIndexMap : Map<number, number> = new Map();
     private indexToSongListContainerMap : Map<number, SongListContainer> = new Map();
     private indexToSongListContainerStartMap : Map<number, number> = new Map();
+    private songListIndexToIndexMap : Map<number, number> = new Map();
     private expanded : boolean = true;
     private readonly depth : number; 
+    private currentIndex : number = 0;
 
     private parent : SongListContainer | null;
     private startMarker : SongListMarker = new SongListMarker(this, true);
     private endMarker : SongListMarker = new SongListMarker(this, false);
 
+    private indexChangeEventHandlers: Array<(newIndex : number) => void> = [];
+
     public constructor(songList : SongList, parent : SongListContainer | null = null)
     {
         this.songList = songList;
+        this.songList.addIndexChangeEventHandler(this.handleSongListIndexChange);
         this.parent = parent;
         this.depth = parent == null ? 0 : parent.depth + 1;
         this.flatList = this.flattenSongList(songList);
+    }
+
+    private setIndex(newIndex : number)
+    {
+        this.currentIndex = newIndex;
+        this.fireIndexChangeEvent();
+    }
+
+    private handleSongListIndexChange = (newSongListIndex : number) =>
+    {
+        var newIndex = this.songListIndexToIndexMap.get(newSongListIndex);
+        if (newIndex == null)
+            throw "Invalid SongList index to SongListContainer index conversion!";
+        this.setIndex(newIndex);
     }
 
     public getName() : string
@@ -78,6 +97,7 @@ export class SongListContainer
         var internalIndex = 0;
         var songListIndex = 0;
         var indexToSongListIndexMap : Map<number, number> = new Map();
+        var songListIndexToIndexMap : Map<number, number> = new Map();
         var indexToSongListContainerMap : Map<number, SongListContainer> = new Map();
         var indexToSongListContainerStartMap: Map<number, number> = new Map();
         songList.getInternalList().forEach(element => {
@@ -85,6 +105,7 @@ export class SongListContainer
             {
                 flatList.push(element);
                 indexToSongListIndexMap.set(index, songListIndex);
+                songListIndexToIndexMap.set(songListIndex, index);
                 indexToSongListContainerMap.set(index, this);
                 indexToSongListContainerStartMap.set(index, 0);
 
@@ -109,6 +130,7 @@ export class SongListContainer
                     indexToSongListContainerMap.set(i, songListContainer);
                     indexToSongListContainerStartMap.set(i, index);
                     indexToSongListIndexMap.set(i, songListIndex);
+                    songListIndexToIndexMap.set(songListIndex, i);
                     if (SongListContainer.isSong(childElement))
                         songListIndex++;
                     else if (SongListContainer.isSongListMarker(childElement))
@@ -130,13 +152,14 @@ export class SongListContainer
         this.indexToSongListIndexMap = indexToSongListIndexMap;
         this.indexToSongListContainerMap = indexToSongListContainerMap;
         this.indexToSongListContainerStartMap = indexToSongListContainerStartMap;
+        this.songListIndexToIndexMap = songListIndexToIndexMap;
         return flatList;
     }
 
     private recalculateSongListContainerMap()
     {
-        //TODO: indexToSongListIndexMap
         var indexToSongListIndexMap : Map<number, number> = new Map();
+        var songListIndexToIndexMap : Map<number, number> = new Map();
         var indexToSongListContainerMap : Map<number, SongListContainer> = new Map();
         var indexToSongListContainerStartMap : Map<number, number> = new Map();
         var currSongListContainer : SongListContainer = this;
@@ -148,6 +171,7 @@ export class SongListContainer
             indexToSongListContainerMap.set(i, currSongListContainer);
             indexToSongListContainerStartMap.set(i, currStartIndex);
             indexToSongListIndexMap.set(i, songListIndex);
+            songListIndexToIndexMap.set(songListIndex, i);
             var element = this.flatList[i];
             if (SongListContainer.isSong(element))
             {
@@ -156,7 +180,12 @@ export class SongListContainer
             }
             if (SongListContainer.isSongListContainer(element))
             {
-                songListIndex += element.getSongList().getLength();
+                var songListIndexLimit = songListIndex + element.getSongList().getLength();
+                for (var currSongListIndex = songListIndex; currSongListIndex < songListIndexLimit; songListIndex++)
+                {
+                    songListIndexToIndexMap.set(currSongListIndex, i);
+                }
+                songListIndex = songListIndexLimit;
                 continue;
             }
             if (element.isStart())
@@ -181,6 +210,7 @@ export class SongListContainer
         this.indexToSongListContainerMap = indexToSongListContainerMap;
         this.indexToSongListContainerStartMap = indexToSongListContainerStartMap;
         this.indexToSongListIndexMap = indexToSongListIndexMap;
+        this.songListIndexToIndexMap = songListIndexToIndexMap;
     }
 
     public shrinkSongList(index : number)
@@ -221,6 +251,7 @@ export class SongListContainer
         var songListIndex = this.indexToSongListIndexMap.get(index);
         if (songListIndex == null)
             throw "Index [" + index + "] produced SongListIndex null on Song Selection in SongListContainer!";
+        this.setIndex(index);
         return this.songList.selectSong(songListIndex);
     }
 
@@ -311,6 +342,24 @@ export class SongListContainer
 
         if (recalculateMaps)
             this.recalculateSongListContainerMap();
+    }
+
+    public addIndexChangeEventHandler(eventHandler: (newIndex: number) => void)
+    {
+        this.indexChangeEventHandlers.push(eventHandler);
+    }
+
+    public removeIndexChangeEventHandler(eventHandler: (newIndex: number) => void)
+    {
+        var index = this.indexChangeEventHandlers.indexOf(eventHandler);
+        if (index == -1)
+            return;
+        this.indexChangeEventHandlers.splice(index, 1);
+    }
+
+    private fireIndexChangeEvent()
+    {
+        this.indexChangeEventHandlers.forEach(handler => handler(this.currentIndex.valueOf()));
     }
 
 }
