@@ -178,7 +178,7 @@ export class SongList
         var internalIndex = this.indexMap.get(this.currIndex);
         if (internalIndex === undefined || internalIndex >= this.internalList.length)
             return null;
-        var element = this.internalList[this.currIndex];
+        var element = this.internalList[internalIndex];
         if (this.isSong(element))
             return element;
         else
@@ -216,7 +216,7 @@ export class SongList
             return null;
         this.currIndex = index;
         this.indexChangeEventHandlers.forEach(handler => handler(index.valueOf()));
-        var element = this.internalList[index];
+        var element = this.internalList[internalIndex];
         if (this.isSong(element))
             return element;
         else
