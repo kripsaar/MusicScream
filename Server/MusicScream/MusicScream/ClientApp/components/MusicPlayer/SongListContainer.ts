@@ -99,26 +99,31 @@ export class SongListContainer
                 flatList.push(songListContainer.endMarker);
                 indexToSongListContainerMap.set(index, this);
                 indexToSongListContainerStartMap.set(index, 0);
+                indexToSongListIndexMap.set(index, songListIndex);
                 var limit = index + songListContainer.getLength() + 1;
+                indexToSongListIndexMap.set(limit, songListIndex);
+                var songListStartIndex = songListIndex;
                 for (var i = index + 1; i < limit; i++)
                 {
+                    var childElement = flatList[i];
                     indexToSongListContainerMap.set(i, songListContainer);
                     indexToSongListContainerStartMap.set(i, index);
+                    indexToSongListIndexMap.set(i, songListIndex);
+                    if (SongListContainer.isSong(childElement))
+                        songListIndex++;
+                    else if (SongListContainer.isSongListMarker(childElement))
+                    {
+                        if (childElement.isStart())
+                            songListStartIndex = songListIndex;
+                        else
+                            indexToSongListIndexMap.set(i, songListStartIndex);
+                    }
+                    else if (SongListContainer.isSongListContainer(childElement))
+                        throw "Unexpected child SongListContainer while flattening new SongListContainer!";
                 }
                 indexToSongListContainerMap.set(limit, this);
                 indexToSongListContainerStartMap.set(limit, 0);
-                var containerIndex = index;
-                index = limit;
-
-                limit = songListIndex + element.getLength();
-                indexToSongListIndexMap.set(containerIndex++, songListIndex);
-                for (var i = songListIndex; i < limit; i++)
-                {
-                    indexToSongListIndexMap.set(containerIndex++, i);
-                }
-                indexToSongListIndexMap.set(limit, songListIndex);
-                songListIndex = limit;
-                index++;
+                index = limit + 1;
             }
             internalIndex++;
         });
@@ -130,30 +135,52 @@ export class SongListContainer
 
     private recalculateSongListContainerMap()
     {
+        //TODO: indexToSongListIndexMap
+        var indexToSongListIndexMap : Map<number, number> = new Map();
         var indexToSongListContainerMap : Map<number, SongListContainer> = new Map();
         var indexToSongListContainerStartMap : Map<number, number> = new Map();
         var currSongListContainer : SongListContainer = this;
         var currStartIndex = 0;
+        var songListIndex = 0;
+        var songListStartIndex = 0;
         for (var i = 0; i < this.flatList.length; i++)
         {
             indexToSongListContainerMap.set(i, currSongListContainer);
             indexToSongListContainerStartMap.set(i, currStartIndex);
+            indexToSongListIndexMap.set(i, songListIndex);
             var element = this.flatList[i];
-            if (!SongListContainer.isSongListMarker(element))
+            if (SongListContainer.isSong(element))
+            {
+                songListIndex++;
                 continue;
-            if (element.isStart() && element.getSongListContainer().parent == this)
-            {
-                currSongListContainer = element.getSongListContainer();
-                currStartIndex = i + 1;
             }
-            else if (!element.isStart() && element.getSongListContainer().parent == this)
+            if (SongListContainer.isSongListContainer(element))
             {
-                currSongListContainer = this;
-                currStartIndex = 0;
+                songListIndex += element.getSongList().getLength();
+                continue;
+            }
+            if (element.isStart())
+            {
+                songListStartIndex = songListIndex;
+                if (element.getSongListContainer().parent == this)
+                {
+                    currSongListContainer = element.getSongListContainer();
+                    currStartIndex = i + 1;
+                }
+            }
+            else
+            {
+                indexToSongListIndexMap.set(i, songListStartIndex);
+                if (element.getSongListContainer().parent == this)
+                {
+                    currSongListContainer = this;
+                    currStartIndex = 0;
+                }
             }
         }
         this.indexToSongListContainerMap = indexToSongListContainerMap;
         this.indexToSongListContainerStartMap = indexToSongListContainerStartMap;
+        this.indexToSongListIndexMap = indexToSongListIndexMap;
     }
 
     public shrinkSongList(index : number)
@@ -191,12 +218,9 @@ export class SongListContainer
 
     public selectSong(index : number)
     {
-        var element = this.flatList[index];
-        if (!SongListContainer.isSong(element))
-            return;
         var songListIndex = this.indexToSongListIndexMap.get(index);
         if (songListIndex == null)
-            return;
+            throw "Index [" + index + "] produced SongListIndex null on Song Selection in SongListContainer!";
         return this.songList.selectSong(songListIndex);
     }
 
