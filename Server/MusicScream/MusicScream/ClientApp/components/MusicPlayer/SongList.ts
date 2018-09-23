@@ -239,6 +239,7 @@ export class SongList
         if (this.isSong(element))
         {
             this.internalList.splice(internalIndex, 1);
+            this.flatList.splice(index, 1);
             this.fireLengthChangeEvent();
         }
         else
@@ -247,6 +248,17 @@ export class SongList
             if (firstIndex === undefined)
                 return;
             element.removeSong(index - firstIndex);
+        }
+
+        if (index == this.currIndex)
+        {
+            this.currIndex--;
+            this.indexChangeEventHandlers.forEach(handler => handler(-1));
+        }
+        else if (index < this.currIndex)
+        {
+            this.currIndex--;
+            this.indexChangeEventHandlers.forEach(handler => handler(this.currIndex.valueOf()));
         }
 
         this.recalculateLengthAndIndexMap()
@@ -303,13 +315,20 @@ export class SongList
             this.recalculateIndexMap();
             this.length += songs.length;
             this.fireLengthChangeEvent();
-            return;
+        }
+        else
+        {
+            if (this.isSong(element))
+                return;
+    
+            element.addSongs(index - firstIndex, ...songs);
         }
 
-        if (this.isSong(element))
-            return;
-
-        element.addSongs(index - firstIndex, ...songs);
+        if (index <= this.currIndex)
+        {
+            this.currIndex += songs.length;
+            this.indexChangeEventHandlers.forEach(handler => handler(this.currIndex));
+        }
     }
 
     public addSongList(index: number, songList: SongList)
@@ -333,14 +352,19 @@ export class SongList
             this.internalList.splice(internalIndex, 0, songList);
             this.flattenInternalList();
             songList.addLengthChangeEventHandler(this.handleLengthChange);
-
-            return;
         }
-
-        if (this.isSong(element))
-            return;
-
-        this.addSongList(index, songList);
+        else
+        {
+            if (this.isSong(element))
+                return;
+    
+            this.addSongList(index, songList);
+        }
+        if (index <= this.currIndex)
+        {
+            this.currIndex += songList.getLength();
+            this.indexChangeEventHandlers.forEach(handler => handler(this.currIndex));
+        }
     }
 
     public queueSongList(songList : SongList)
@@ -381,8 +405,27 @@ export class SongList
         if (this.isSong(element))
             return;
         
+
+        var currInternalIndex = this.indexMap.get(this.currIndex);
+        if (currInternalIndex == null)
+            throw "Index [" + this.currIndex + "] failed to produce valid internalIndex!";
+
         this.internalList.splice(internalIndex, 1);
         this.flattenInternalList();
+
+        if (currInternalIndex == internalIndex)
+        {
+            // current Index was in removed SongList
+            this.currIndex = internalIndex - 1;
+            this.indexChangeEventHandlers.forEach(handler => handler(-1));
+            return;
+        }
+
+        if (internalIndex < currInternalIndex)
+        {
+            this.currIndex -= element.getLength();
+            this.indexChangeEventHandlers.forEach(handler => handler(this.currIndex.valueOf()));
+        }
     }
 
     public playSongsNext(...songs: Song[])
