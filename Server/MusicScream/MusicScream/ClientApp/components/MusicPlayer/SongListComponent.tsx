@@ -144,7 +144,10 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                         )}
                                         <div 
                                             className={"draggable-list-item"}
-                                            style={{opacity: currentlyDraggingId == index ? 0 : undefined}}
+                                            style={{
+                                                opacity: currentlyDraggingId == index ? 0 : undefined,
+                                                background: this.state.currIndex == index ? "#C6EDFF" : undefined
+                                            }}
                                         >
                                             <div className="draggable-element" style={{display: "flex", alignItems: "center"}}
                                                 onClick={() => 
