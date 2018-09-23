@@ -40,7 +40,7 @@ export class SongListContainer
     {
         var newIndex = this.songListIndexToIndexMap.get(newSongListIndex);
         if (newIndex == null)
-            throw "Invalid SongList index to SongListContainer index conversion!";
+            return;
         this.setIndex(newIndex);
     }
 
@@ -100,6 +100,10 @@ export class SongListContainer
         var songListIndexToIndexMap : Map<number, number> = new Map();
         var indexToSongListContainerMap : Map<number, SongListContainer> = new Map();
         var indexToSongListContainerStartMap: Map<number, number> = new Map();
+        indexToSongListIndexMap.set(-1, -1);
+        songListIndexToIndexMap.set(-1, -1);
+        indexToSongListContainerMap.set(-1, this);
+        indexToSongListContainerStartMap.set(-1, 0);
         songList.getInternalList().forEach(element => {
             if (SongListContainer.isSong(element))
             {
@@ -128,7 +132,7 @@ export class SongListContainer
                 {
                     var childElement = flatList[i];
                     indexToSongListContainerMap.set(i, songListContainer);
-                    indexToSongListContainerStartMap.set(i, index);
+                    indexToSongListContainerStartMap.set(i, index + 1);
                     indexToSongListIndexMap.set(i, songListIndex);
                     songListIndexToIndexMap.set(songListIndex, i);
                     if (SongListContainer.isSong(childElement))
@@ -149,6 +153,8 @@ export class SongListContainer
             }
             internalIndex++;
         });
+        indexToSongListIndexMap.set(index, songListIndex);
+        songListIndexToIndexMap.set(songListIndex, index);
         this.indexToSongListIndexMap = indexToSongListIndexMap;
         this.indexToSongListContainerMap = indexToSongListContainerMap;
         this.indexToSongListContainerStartMap = indexToSongListContainerStartMap;
@@ -162,6 +168,10 @@ export class SongListContainer
         var songListIndexToIndexMap : Map<number, number> = new Map();
         var indexToSongListContainerMap : Map<number, SongListContainer> = new Map();
         var indexToSongListContainerStartMap : Map<number, number> = new Map();
+        indexToSongListIndexMap.set(-1, -1);
+        songListIndexToIndexMap.set(-1, -1);
+        indexToSongListContainerMap.set(-1, this);
+        indexToSongListContainerStartMap.set(-1, 0);
         var currSongListContainer : SongListContainer = this;
         var currStartIndex = 0;
         var songListIndex = 0;
@@ -181,7 +191,7 @@ export class SongListContainer
             if (SongListContainer.isSongListContainer(element))
             {
                 var songListIndexLimit = songListIndex + element.getSongList().getLength();
-                for (var currSongListIndex = songListIndex; currSongListIndex < songListIndexLimit; songListIndex++)
+                for (var currSongListIndex = songListIndex; currSongListIndex < songListIndexLimit; currSongListIndex++)
                 {
                     songListIndexToIndexMap.set(currSongListIndex, i);
                 }
@@ -207,6 +217,8 @@ export class SongListContainer
                 }
             }
         }
+        indexToSongListIndexMap.set(this.flatList.length, songListIndex);
+        songListIndexToIndexMap.set(songListIndex, this.flatList.length);
         this.indexToSongListContainerMap = indexToSongListContainerMap;
         this.indexToSongListContainerStartMap = indexToSongListContainerStartMap;
         this.indexToSongListIndexMap = indexToSongListIndexMap;
@@ -222,6 +234,12 @@ export class SongListContainer
             return;
         var songListContainer = element.getSongListContainer();
         this.flatList.splice(index, songListContainer.getLength() + 2, songListContainer);
+
+        if (this.currentIndex >  index && this.currentIndex < index + element.getSongListContainer().getLength() + 1)
+        {
+            this.setIndex(index);
+        }
+
         var targetSongListContainer = this.indexToSongListContainerMap.get(index);
         var targetIndex = this.indexToSongListContainerStartMap.get(index);
         if (targetSongListContainer != this && targetSongListContainer != null && targetIndex != null)
@@ -239,10 +257,18 @@ export class SongListContainer
             ...(element.getFlatList()),
             element.endMarker
         );
+
         var targetSongListContainer = this.indexToSongListContainerMap.get(index);
         var targetIndex = this.indexToSongListContainerStartMap.get(index);
         if (targetSongListContainer != this && targetSongListContainer != null && targetIndex != null)
             targetSongListContainer.expandSongList(index - targetIndex);
+
+        if (this.currentIndex == index)
+        {
+            var newIndex = this.currentIndex + 1 + element.currentIndex;
+            this.setIndex(newIndex);
+        }
+
         this.recalculateSongListContainerMap();
     }
 
@@ -262,11 +288,85 @@ export class SongListContainer
         {
             return;
         }
-        var oldLength = this.flatList.length;
-        this.removeElement(index, true);
+
+        // Index preservation magic starts here
+
+        var songListIndex = this.indexToSongListIndexMap.get(index);
+        if (songListIndex == null)
+            throw "Invalid index -> songListIndex mapping in moveElement of SongListContainer";
+        var newSongListIndex = undefined;
+        if (newIndex >= this.flatList.length)
+        {
+            newSongListIndex = this.indexToSongListIndexMap.get(newIndex);
+        }
+        else
+        {
+            var newIndexElement = this.flatList[newIndex];
+            var nextIndex = newIndex;
+            while (SongListContainer.isSongListMarker(newIndexElement) && !newIndexElement.isStart())
+            {
+                nextIndex++;
+                if (nextIndex >= this.flatList.length)
+                    break;
+                newIndexElement = this.flatList[nextIndex];
+            }
+            newSongListIndex = this.indexToSongListIndexMap.get(nextIndex);
+        }
+        if (newSongListIndex == null)
+            throw "Invalid newIndex -> newSongListIndex mapping in moveElement of SongListContainer";
+        var currSongListIndex = this.songList.getCurrentIndex();
+        var currIndex = this.songListIndexToIndexMap.get(currSongListIndex);
+        if (currIndex == null)
+            throw "Invalid currSongListIndex -> currIndex mapping in moveElement of SongListContainer";
+        
+        var newCurrSongListIndex = currSongListIndex;
+
         if (index < newIndex)
-            newIndex -= oldLength - this.flatList.length;
+        {
+            newIndex--;
+            newSongListIndex--;
+        }
+
+        if (SongListContainer.isSong(element))
+        {
+            if (index == currIndex)
+            {
+                newCurrSongListIndex = newSongListIndex;
+            }
+            else if (songListIndex < currSongListIndex && currSongListIndex < newSongListIndex)
+            {
+                newCurrSongListIndex = currSongListIndex - 1;
+            }
+            else if (songListIndex > currSongListIndex && currSongListIndex >= newSongListIndex)
+            {
+                newCurrSongListIndex = currSongListIndex + 1;
+            }
+        }
+        else
+        {
+            if (index == currIndex)
+            {
+                var distance = newSongListIndex - songListIndex;
+                if (index < newIndex)
+                    distance = distance - element.getSongList().getLength() + 1;
+                newCurrSongListIndex = currSongListIndex + distance;
+            }
+            else if (index < currIndex && currIndex < newIndex)
+            {
+                newCurrSongListIndex = currSongListIndex - element.getLength();
+            }
+            else if (index > currIndex && currIndex >= newIndex)
+            {
+                newCurrSongListIndex = currSongListIndex + element.getLength();
+            }
+        }
+        
+        // Magic's over folks!
+
+        this.removeElement(index, true);
         this.addElement(newIndex, element, true);
+
+        this.songList.selectSong(newCurrSongListIndex);
     }
 
     private addElement(index : number, element : SongListContainerElement, recalculateMaps: boolean = true)
