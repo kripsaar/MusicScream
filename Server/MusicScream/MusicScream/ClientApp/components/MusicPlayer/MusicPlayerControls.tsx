@@ -6,6 +6,9 @@ import 'rc-slider/assets/index.css'
 import { MusicPlayer, MusicPlayerInstance } from './MusicPlayer';
 import { ImageModal } from './ImageModal';
 
+import { MdPlayCircleFilled, MdPauseCircleFilled, MdSkipNext, MdSkipPrevious,
+        MdVolumeMute, MdVolumeUp, MdVolumeDown, MdVolumeOff, MdRepeat, MdStop, MdShuffle } from 'react-icons/md'
+
 interface IMusicPlayerControlsProps
 {
     onStop?: () => void;
@@ -150,14 +153,6 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
     {
         var duration = isNaN(this.state.duration) ? 0 : this.state.duration;
 
-        var volumeIcon: string;
-        if (this.state.muted || this.state.volume == 0)
-            volumeIcon = "glyphicon glyphicon-volume-off";
-        else if (this.state.volume < 50)
-            volumeIcon = "glyphicon glyphicon-volume-down";
-        else
-            volumeIcon = "glyphicon glyphicon-volume-up";
-
         return <div className="media-control-bar">
             <div className="media-control-currently-playing">
                 { this.musicPlayer.selectedSong ?
@@ -210,40 +205,65 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
                 <div className="media-control-button-bar">
                     {this.props.onShuffle ?
                         <span 
-                            className={"glyphicon glyphicon-random" + (this.state.shuffle ? " media-control-button-active" : " media-control-button")}
+                            className={
+                            (this.state.shuffle ? " media-control-button-active" : " media-control-button")}
                             onClick={this.toggleShuffle.bind(this)}
-                        />
+                        >
+                            <MdShuffle className="media-control-button"/>
+                        </span>
                     : null}
-                    <span className="glyphicon glyphicon-step-backward media-control-button"
-                        onClick={this.playPreviousSong.bind(this)}
-                    />
                     <span 
-                        className={"media-control-button " + (this.state.paused ? "glyphicon glyphicon-play" : "glyphicon glyphicon-pause")}
-                        // onClick={this.props.onPlayPause}
+                        onClick={this.playPreviousSong.bind(this)}
+                    >
+                        <MdSkipPrevious className="media-control-button"/>
+                    </span>
+                    <span 
                         onClick={this.togglePlayPause.bind(this)}
-                    />
+                    >
+                        {this.state.paused ? 
+                            <MdPlayCircleFilled className="media-control-button" style={{fontSize: "3.5em"}}/>
+                        :
+                            <MdPauseCircleFilled className="media-control-button" style={{fontSize: "3.5em"}}/>
+                        }
+                    </span>
                     {this.props.onStop ?
                         <span 
-                            className={"glyphicon glyphicon-stop media-control-button"}
                             onClick={this.props.onStop}
-                        />
+                        >
+                            <MdStop className="media-control-button"/>
+                        </span>
                     : null}
-                    <span className="glyphicon glyphicon-step-forward media-control-button"
+                    <span 
                         onClick={this.playNextSong.bind(this)}
-                    />
+                    >
+                        <MdSkipNext className="media-control-button"/>
+                    </span>
                     {this.props.onRepeat ?
                         <span 
-                            className={"glyphicon glyphicon-retweet" + (this.state.repeat ? " media-control-button-active" : " media-control-button")}
+                            className={
+                                (this.state.repeat ? " media-control-button-active" : " media-control-button")}
                             onClick={this.toggleRepeat.bind(this)}
-                        />
+                        >
+                            <MdRepeat className="media-control-button"/>
+                        </span>
                     : null}
                 </div>
             </div>
             <div className="media-control-volume">
                 <span 
-                    className={"media-control-button " + volumeIcon}
+                    style={{fontSize: "0.8em"}}
                     onClick={this.toggleMute.bind(this)}
-                />
+                >
+                    { this.state.muted ? 
+                        <MdVolumeOff className="media-control-button"/>
+                    : this.state.volume == 0 ?
+                        <MdVolumeMute className="media-control-button"/>
+                    : this.state.volume < 50 ?
+                        <MdVolumeDown className="media-control-button"/>
+                    :
+                        <MdVolumeUp className="media-control-button"/>
+                    }
+                </span>
                 <Slider 
                     style={{width: "75px"}}
                     value={this.state.volume}

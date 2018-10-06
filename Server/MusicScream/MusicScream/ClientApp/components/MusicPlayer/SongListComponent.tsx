@@ -5,6 +5,8 @@ import { SongList } from './SongList';
 import { Draggable, Droppable, DragComponent, DragState } from "react-dragtastic";
 import { SongListContainer } from './SongListContainer';
 
+import { MdDragHandle } from 'react-icons/md';
+
 interface ISongListComponentState
 {
     songList : SongList;
@@ -170,11 +172,13 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                                     <Draggable type="draggableList" id={index}>
                                                         {({events}) => (
                                                             <div 
-                                                                className="glyphicon glyphicon-option-vertical drag-button"
+                                                                className="drag-button"
                                                                 {...events}
                                                                 onClick={(event) => {event.stopPropagation()}}
                                                                 style={{cursor: "grab"}}
-                                                            />
+                                                            >
+                                                                <MdDragHandle style={{verticalAlign: "text-top"}}/>
+                                                            </div>
                                                         )}
                                                     </Draggable>
                                                 </span>
@@ -203,9 +207,11 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                                     }}
                                                 >
                                                     <span 
-                                                        className="glyphicon glyphicon-option-vertical drag-button"
+                                                        className="drag-button"
                                                         style={{opacity: 1}}
-                                                    />
+                                                    >
+                                                        <MdDragHandle style={{verticalAlign: "text-top"}}/>
+                                                    </span>
                                                     <span>
                                                         {(index + 1) + ". " 
                                     + (SongListContainer.isSong(element) ? ((element.artists.length > 0 ? element.artists.map(artist => artist.name).join(", ") : "Unknown Artist") + " - " + element.title)
