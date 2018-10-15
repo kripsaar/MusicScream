@@ -12,7 +12,6 @@ export class SongListContainer
     private indexToSongListContainerStartMap : Map<number, number> = new Map();
     private songListIndexToIndexMap : Map<number, number> = new Map();
     private expanded : boolean = true;
-    private readonly depth : number; 
     private currentIndex : number = 0;
 
     private parent : SongListContainer | null;
@@ -26,7 +25,6 @@ export class SongListContainer
         this.songList = songList;
         this.songList.addIndexChangeEventHandler(this.handleSongListIndexChange);
         this.parent = parent;
-        this.depth = parent == null ? 0 : parent.depth + 1;
         this.flatList = this.flattenSongList(songList);
     }
 
