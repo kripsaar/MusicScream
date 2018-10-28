@@ -2,12 +2,9 @@ import { Song, PlayableElement } from "../../Models/SongModel";
 import { PlaylistTO, PlaylistTOElement, PlaylistElement } from "../../Models/PlaylistModel";
 import { Communication } from "../../Communication";
 
-// IDEA: Cache for Playlists, to always get same Playlist object for same ID
-// IDEA: Further wrapping of elements with class - unique elements with parent Playlist 
-
 export class Playlist extends PlaylistElement
 {
-    private static playlistCache2 : Map<number, Set<Playlist>> = new Map<number, Set<Playlist>>();
+    private static playlistCache : Map<number, Set<Playlist>> = new Map<number, Set<Playlist>>();
 
     private id : number = -1;
     private name : string;
@@ -79,21 +76,21 @@ export class Playlist extends PlaylistElement
 
     private static addPlaylistToCache(playlist : Playlist)
     {
-        if (this.playlistCache2.has(playlist.id))
+        if (this.playlistCache.has(playlist.id))
         {
-            this.playlistCache2.get(playlist.id)!.add(playlist);
+            this.playlistCache.get(playlist.id)!.add(playlist);
             return;
         }
         let set = new Set<Playlist>();
         set.add(playlist);
-        this.playlistCache2.set(playlist.id, set);
+        this.playlistCache.set(playlist.id, set);
     }
 
     private static removePlaylistFromCache(playlist : Playlist)
     {
-        if (!this.playlistCache2.has(playlist.id))
+        if (!this.playlistCache.has(playlist.id))
             return;
-        let set = this.playlistCache2.get(playlist.id)!;
+        let set = this.playlistCache.get(playlist.id)!;
         set.delete(playlist);
     }
 
