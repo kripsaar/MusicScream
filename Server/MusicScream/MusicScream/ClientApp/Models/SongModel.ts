@@ -4,6 +4,8 @@ import { GenreInfo } from "./GenreModel";
 import { ProductInfo } from "./ProductModel";
 import { SeasonInfo } from "./SeasonModel";
 import * as Uuid from "uuid";
+import { Playlist } from "ClientApp/components/MusicPlayer/Playlist";
+import { PlaylistElement } from "./PlaylistModel";
 
 export interface Song
 {
@@ -25,20 +27,16 @@ export interface SongInfo
     title : string;
 }
 
-export class PlayableElement
+export class PlayableElement extends PlaylistElement
 {
-    private uuid : string = Uuid.v4();
     private song : Song;
 
-    public constructor(song : Song)
+    public constructor(song : Song, parentPlaylist : Playlist | null = null)
     {
+        super(parentPlaylist);
         this.song = song;
     }
 
-    public getUuid() : string
-    {
-        return this.uuid;
-    }
 
     public getSong() : Song
     {

@@ -1,25 +1,27 @@
 import { Song, PlayableElement } from "../../Models/SongModel";
-import * as Uuid from "uuid"
+import { PlaylistTO, PlaylistTOElement, PlaylistElement } from "../../Models/PlaylistModel";
+import { Communication } from "../../Communication";
 
-type PlaylistElement = PlayableElement | Playlist | PlaylistMarker; 
+// IDEA: Cache for Playlists, to always get same Playlist object for same ID
+// IDEA: Further wrapping of elements with class - unique elements with parent Playlist 
 
-/*  IDEA:
-    Keep member playlist state in here, export to server when appropriate (TBD: on change or some other point, dunno?)
-*/
-
-export class Playlist
+export class Playlist extends PlaylistElement
 {
+    private static playlistCache2 : Map<number, Set<Playlist>> = new Map<number, Set<Playlist>>();
+
+    private id : number = -1;
     private name : string;
     private internalList : PlaylistElement[] = [];
     private currentIndex : number;
     private songCount : number = 0;
-
+    
     private startMarker : PlaylistMarker;
     private endMarker : PlaylistMarker;
 
-
-    public constructor(listOfSongs : Song[], name = "Unnamed Playlist")
+    private constructor(temporary : boolean = true, listOfSongs : Song[] = [], name : string = "Unnamed Playlist", id : number = 0)
     {
+        super();
+        this.setId(temporary ? -1 : id);
         this.name = name;
         listOfSongs.forEach(song => this.internalList.push(new PlayableElement(song)));
         this.currentIndex = 0;
@@ -28,17 +30,94 @@ export class Playlist
         this.endMarker = new PlaylistMarker(this, false);
     }
 
-    private isSong(object : PlaylistElement) : object is PlayableElement
+    private setId(id : number)
     {
-        return "uuid" in object;
+        if (id > 0 && this.id != id)
+        {
+            if (this.id > 0)
+                Playlist.removePlaylistFromCache(this);
+            Playlist.addPlaylistToCache(this);
+        }
+        this.id = id;
     }
 
-    private isPlaylist(object : PlaylistElement) : object is Playlist
+    public static getEmptyPlaylist() : Playlist
     {
-        return "internalList" in object;
+        return new Playlist();
     }
 
-    private isPlaylistMarker(object : PlaylistElement) : object is PlaylistMarker
+    public static async createPlaylist(temporary : boolean = true, listOfSongs : Song[] = [], name : string = "Unnamed Playlist", id : number = 0) : Promise<Playlist>
+    {
+        var playlist = new Playlist(temporary, listOfSongs, name, id);
+        await playlist.exportPlaylist();
+        return playlist;
+    }
+
+    public static async fromPlaylistTO(playlistTO : PlaylistTO) : Promise<Playlist>
+    {
+        var playlist = new Playlist(true, [], playlistTO.name);
+        playlist.setId(playlistTO.id);
+        var songCount = 0;
+        for (let element of playlistTO.list)
+        {
+            if (Playlist.isPlaylistInfo(element))
+            {
+                var subPlaylist = await Playlist.fromPlaylistTO(element);
+                subPlaylist.setParentPlaylist(playlist);
+                playlist.internalList.push(subPlaylist);
+            }
+            else
+            {
+                songCount++;
+                playlist.internalList.push(new PlayableElement(element, playlist));
+            }
+        }
+        playlist.songCount = songCount;
+
+        return playlist;
+    }
+
+    private static addPlaylistToCache(playlist : Playlist)
+    {
+        if (this.playlistCache2.has(playlist.id))
+        {
+            this.playlistCache2.get(playlist.id)!.add(playlist);
+            return;
+        }
+        let set = new Set<Playlist>();
+        set.add(playlist);
+        this.playlistCache2.set(playlist.id, set);
+    }
+
+    private static removePlaylistFromCache(playlist : Playlist)
+    {
+        if (!this.playlistCache2.has(playlist.id))
+            return;
+        let set = this.playlistCache2.get(playlist.id)!;
+        set.delete(playlist);
+    }
+
+    private static isPlaylistInfo(object : PlaylistTOElement) : object is PlaylistTO
+    {
+        if (!("list" in object))
+            return false;
+        let testObject = object as PlaylistTO & Song;
+        if (testObject.list == null)
+            return false;
+        return true;
+    }
+
+    public static isSong(object : PlaylistElement) : object is PlayableElement
+    {
+        return "song" in object;
+    }
+
+    public static isPlaylist(object : PlaylistElement) : object is Playlist
+    {
+        return "startMarker" in object;
+    }
+
+    public static isPlaylistMarker(object : PlaylistElement) : object is PlaylistMarker
     {
         return ("start" in object) && ("playlist" in object);
     }
@@ -68,6 +147,11 @@ export class Playlist
         this.currentIndex = newIndex;
     }
 
+    private setSongCount(newCount : number)
+    {
+        this.songCount = newCount;
+    }
+
     private getStartMarker() : PlaylistMarker
     {
         return this.startMarker;
@@ -78,13 +162,25 @@ export class Playlist
         return this.endMarker;
     }
 
+    private findElement(element : PlaylistElement) : number
+    {
+        return this.internalList.findIndex(value => value == element);
+    }
+
+    public setParentPlaylist(parentPlaylist: Playlist)
+    {
+        this.parentPlaylist = parentPlaylist;
+        this.startMarker.setParentPlaylist(parentPlaylist);
+        this.endMarker.setParentPlaylist(parentPlaylist);
+    }
+
     private containsPlaylist(playlist : Playlist) : boolean
     {
         if (this == playlist)
             return true;
         for (var element of this.internalList)
         {
-            if (!this.isPlaylistMarker(element))
+            if (!Playlist.isPlaylistMarker(element))
                 continue;
             if (!element.isStart())
                 continue;
@@ -99,11 +195,13 @@ export class Playlist
         if (this.currentIndex >= this.internalList.length)
             throw "Current playlist index out of bounds!";
         var element = this.internalList[this.currentIndex];
-        if (this.isSong(element))
+        if (Playlist.isSong(element))
             return element;
-        if (this.isPlaylistMarker(element))
+        if (Playlist.isPlaylistMarker(element))
             return element.getPlaylist().getCurrentSong();
-        return element.getCurrentSong();
+        if (element instanceof Playlist)
+            return element.getCurrentSong()
+        return null;
     }
 
     public selectSong(index : number) : PlayableElement | null
@@ -111,9 +209,14 @@ export class Playlist
         if (index < 0 || index >= this.internalList.length)
             throw "Index out of bounds!";
         var element = this.internalList[index];
-        if (!this.isSong(element))
+        if (!Playlist.isSong(element))
             return null;
         this.setCurrentIndex(index);
+        var parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist != null && parentPlaylist != this)
+        {
+            parentPlaylist.selectSong(parentPlaylist.findElement(element));
+        }
         return element;
     }
 
@@ -122,17 +225,21 @@ export class Playlist
         if (index < 0 || index >= this.internalList.length)
             throw "Index out of bounds!";
         var element = this.internalList[index];
-        if (!this.isPlaylistMarker(element))
+        if (!Playlist.isPlaylistMarker(element))
         {
             this.internalList.splice(index, 1);
             if (this.currentIndex >= index)
                 this.setCurrentIndex(this.currentIndex - 1);
+            if (Playlist.isSong(element))
+                this.setSongCount(this.songCount - 1);
+            else if (element instanceof Playlist)
+                this.setSongCount(this.songCount - element.songCount);
         }
         else
         {
             var playlistMarker = element;
             var otherIndex = this.internalList.findIndex(value =>
-                this.isPlaylistMarker(value) && value.getPlaylist() == playlistMarker.getPlaylist() && value.isStart() != playlistMarker.isStart());
+                Playlist.isPlaylistMarker(value) && value == playlistMarker && value.isStart() != playlistMarker.isStart());
             var startIndex = index < otherIndex ? index : otherIndex;
             var endIndex = index > otherIndex ? index : otherIndex;
             var length = endIndex - startIndex;
@@ -141,10 +248,17 @@ export class Playlist
                 this.setCurrentIndex(startIndex - 1);
             else if (this.currentIndex > endIndex)
                 this.setCurrentIndex(this.currentIndex - length);
+            this.setSongCount(this.songCount - playlistMarker.getPlaylist().songCount);
         }
+        
+        var parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist != null && parentPlaylist != this)
+            parentPlaylist.removeElement(this.findElement(element));
 
         if (this.currentIndex < 0)
             this.setCurrentIndex(0);
+
+        this.exportPlaylist();
     }
 
     public getNextSong() : PlayableElement | null
@@ -163,20 +277,25 @@ export class Playlist
         if (index >= this.internalList.length)
             return null;
         var element = this.internalList[index];
-        while(index < this.internalList.length && this.isPlaylistMarker(element))
+        while(index < this.internalList.length && Playlist.isPlaylistMarker(element))
         {
             index++;
             element = this.internalList[index];
         }
         if (index >= this.internalList.length)
             return null;
-        if (this.isSong(element))
+
+        var parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist != null && parentPlaylist != this)
+            parentPlaylist.setCurrentIndex(this.findElement(element));
+
+        if (Playlist.isSong(element))
         {
             if (selectSong)
                 this.setCurrentIndex(index);
             return element;
         }
-        if (this.isPlaylist(element))
+        if (Playlist.isPlaylist(element))
         {
             if (selectSong)
                 this.setCurrentIndex(index);
@@ -208,20 +327,25 @@ export class Playlist
         if (index < 0)
             return null;
         var element = this.internalList[index];
-        while (index >= 0 && this.isPlaylistMarker(element))
+        while (index >= 0 && Playlist.isPlaylistMarker(element))
         {
             index--;
             element = this.internalList[index]
         }
         if (index < 0)
             return null;
-        if (this.isSong(element))
+
+        var parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist != null && parentPlaylist != this)
+            parentPlaylist.setCurrentIndex(this.findElement(element));
+
+        if (Playlist.isSong(element))
         {
             if (selectSong)
                 this.setCurrentIndex(index);
             return element;
         }    
-        if (this.isPlaylist(element))
+        if (Playlist.isPlaylist(element))
         {
             if (selectSong)
                 this.setCurrentIndex(index);
@@ -241,11 +365,19 @@ export class Playlist
         if (index < 0)
             throw "Index out of bounds!"
         if (index >= this.internalList.length)
-            this.queueSongs(...songs);
+            return this.queueSongs(...songs);
+        var element = this.internalList[index];
         var playableElements = songs.map(song => new PlayableElement(song));
         this.internalList.splice(index, 0, ...playableElements);
         if (index <= this.currentIndex)
             this.setCurrentIndex(this.currentIndex + songs.length);
+        this.setSongCount(this.songCount + songs.length);
+
+        var parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist != null && parentPlaylist != this)
+            parentPlaylist.addSongs(this.findElement(element), ...songs);
+
+        this.exportPlaylist();
     }
 
     public addPlaylist(index: number, playlist : Playlist)
@@ -254,34 +386,56 @@ export class Playlist
             throw "Index out of bounds!";
         if (index >= this.internalList.length)
             this.queuePlaylist(playlist);
+        if (playlist.containsPlaylist(this))
+            return;
+        var element = this.internalList[index];
+        var parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist != null && parentPlaylist != this)
+            parentPlaylist.addPlaylist(this.findElement(element), playlist);
+        
         this.internalList.splice(index, 0, playlist.getStartMarker());
         this.internalList.splice(index + 1, 0, ...playlist.internalList);
         this.internalList.splice(index + 1 + playlist.internalList.length, 0, playlist.getEndMarker());
         if (index <= this.currentIndex)
             this.setCurrentIndex(this.currentIndex + playlist.internalList.length + 2);
+        this.setSongCount(this.songCount + playlist.internalList.length + 2);
+        this.exportPlaylist();
     }
 
     public queueSongs(...songs : Song[])
     {
         this.internalList.push(...songs.map(song => new PlayableElement(song)));
+        this.setSongCount(this.songCount + songs.length);
+        this.exportPlaylist();
     }
 
     public queuePlaylist(playlist : Playlist)
     {
+        if (playlist.containsPlaylist(this))
+            return;
         this.internalList.push(playlist.getStartMarker())
         this.internalList.push(...playlist.internalList);
         this.internalList.push(playlist.getEndMarker());
+        this.setSongCount(this.songCount + playlist.internalList.length + 2)
+        this.exportPlaylist();
     }
 
     public foldPlaylist(index : number)
     {
+        // TODO: Make sure folded playlist knows added songs
+        // IDEA: Just get playlist from server on unfold?
         if (index < 0 || index >= this.internalList.length)
             throw "Index out of bounds!";
         var element = this.internalList[index];
-        if (!this.isPlaylistMarker(element))
+
+        var parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist != null && parentPlaylist != this)
+            parentPlaylist.foldPlaylist(this.findElement(element));
+
+        if (!Playlist.isPlaylistMarker(element))
             return;
         if (!element.isStart())
-            index = this.internalList.findIndex(value => this.isPlaylistMarker(value) && value == element && value.isStart());
+            index = this.internalList.findIndex(value => Playlist.isPlaylistMarker(value) && value == element && value.isStart());
         var playlist = element.getPlaylist();
         var currentIndex = this.currentIndex;
         var limit = playlist.internalList.length + 2;
@@ -301,8 +455,13 @@ export class Playlist
         if (index < 0 || index >= this.internalList.length)
             throw "Index out of bounds!";
         var element = this.internalList[index];
-        if (!this.isPlaylist(element))
+        if (!Playlist.isPlaylist(element))
             return;
+
+        var parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist != null && parentPlaylist != this)
+            parentPlaylist.unfoldPlaylist(this.findElement(element));
+
         var currentIndex = this.currentIndex;
         this.internalList.splice(index, 1, element.getStartMarker(), ...element.internalList, element.getEndMarker());
 
@@ -314,27 +473,91 @@ export class Playlist
 
     public moveElement(index : number, newIndex : number)
     {
-        // TODO
+        // TODO: parent element and stuff
+        if (index < 0 || index >= this.internalList.length)
+            throw "Index out of bounds!";
+        var element = this.internalList[index];
+        if (Playlist.isPlaylistMarker(element))
+            return;
+        var currentIndex = this.currentIndex;
+        if (newIndex < 0)
+            newIndex = 0;
+
+        this.internalList.splice(index, 1);
+        if (newIndex < this.internalList.length)
+            this.internalList.splice(newIndex, 0, element);
+        else
+        {
+            newIndex = this.internalList.length;
+            this.internalList.push(element);
+        }
+
+        if (currentIndex == index)
+            this.setCurrentIndex(newIndex);
+        else if (currentIndex < index && newIndex <= currentIndex)
+            this.setCurrentIndex(currentIndex + 1);
+        else if (index < currentIndex && currentIndex < newIndex)
+            this.setCurrentIndex(currentIndex - 1);
+
+        this.exportPlaylist();
     }
 
-    private finalizePlaylist()
+    private async exportPlaylist()
     {
-
+        if (this.id < 0)
+            return;
+        var playlistTO = this.toPlaylistTO();
+        let result = await Communication.ajaxPostJsonPromise("Playlist/UpdatePlaylist", playlistTO);
+        if (result.playlistTO)
+        {
+            this.setId(result.playlistTO.id);
+        }
     }
 
-    private exportPlaylist()
+    private toPlaylistTO() : PlaylistTO
     {
+        var elementList : PlaylistTOElement[] = [];
 
+        var index = 0;
+        while(index < this.internalList.length)
+        {
+            var element = this.internalList[index];
+            if (Playlist.isPlaylistMarker(element) && element.isStart())
+            {
+                elementList.push(element.getPlaylist().toPlaylistTO());
+                index = index + element.getPlaylist().internalList.length + 2;
+                continue;
+            }
+            if (Playlist.isSong(element))
+            {
+                elementList.push(element.getSong());
+            }
+            if (Playlist.isPlaylist(element))
+            {
+                elementList.push(element.toPlaylistTO());
+            }
+            index++;
+        }
+
+        var playlistTO : PlaylistTO = 
+        {
+            id: this.id,
+            name: this.name,
+            list: elementList
+        };
+
+        return playlistTO;
     }
 }
 
-class PlaylistMarker
+class PlaylistMarker extends PlaylistElement
 {
     private playlist : Playlist;
     private start : boolean;
 
-    public constructor(playlist: Playlist, start : boolean)
+    public constructor(playlist: Playlist, start : boolean, parentPlaylist : Playlist | null = null)
     {
+        super(parentPlaylist);
         this.playlist = playlist;
         this.start = start;
     }
@@ -348,4 +571,5 @@ class PlaylistMarker
     {
         return this.start;
     }
+
 }
