@@ -493,20 +493,27 @@ export class Playlist extends PlaylistElement
     {
         this.internalList.push(...songs.map(song => new PlayableElement(song)));
         this.setSongCount(this.songCount + songs.length);
-        if (this.parentPlaylist == null)
+        let parentPlaylist = this.getParentPlaylist();
+        if (parentPlaylist == null)
             this.exportPlaylist();
+        else
+            parentPlaylist.refreshPlaylist(this, true);
     }
 
     public queuePlaylist(playlist : Playlist)
     {
+        // TODO: Redo
         if (playlist.containsPlaylist(this))
             return;
         this.internalList.push(playlist.getStartMarker())
         this.internalList.push(...playlist.internalList);
         this.internalList.push(playlist.getEndMarker());
         this.setSongCount(this.songCount + playlist.internalList.length + 2)
-        if (this.parentPlaylist == null)
+        let parentPlaylist = this.getParentPlaylist();
+        if (parentPlaylist == null)
             this.exportPlaylist();
+        else
+            parentPlaylist.refreshPlaylist(this, true);
     }
 
     public foldPlaylist(index : number)
