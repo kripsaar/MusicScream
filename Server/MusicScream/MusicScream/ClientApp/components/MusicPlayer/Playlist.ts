@@ -220,7 +220,7 @@ export class Playlist extends PlaylistElement
         return element;
     }
 
-    private refreshPlaylist(playlistId : number)
+    private refreshPlaylistById(playlistId : number)
     {
         let playlistIndexes = this.internalList.map((element, index) => 
         {
@@ -231,14 +231,22 @@ export class Playlist extends PlaylistElement
         for (let index of playlistIndexes)
         {
             let playlist = (this.internalList[index] as PlaylistMarker).getPlaylist();
-            let endIndex = this.internalList.findIndex(element => 
-                element instanceof PlaylistMarker 
-                && !element.isStart()
-                && element.getPlaylist() == playlist);
+            let endIndex = this.internalList.indexOf(playlist.getEndMarker());
             if (endIndex == -1)
                 continue;
-            this.internalList.splice(index + 1, endIndex - index - 2, ...playlist.internalList);
+            this.internalList.splice(index + 1, endIndex - index - 1, ...playlist.internalList);
         }
+    }
+
+    private refreshPlaylist(playlist : Playlist, recursive : boolean = false)
+    {
+        let startIndex = this.internalList.indexOf(playlist.getStartMarker());
+        let endIndex = this.internalList.indexOf(playlist.getEndMarker());
+        if (startIndex == -1 || endIndex == -1)
+            return;
+        this.internalList.splice(startIndex + 1, endIndex - startIndex - 1, ...playlist.internalList);
+        if (recursive && playlist.getParentPlaylist() != null)
+            playlist.getParentPlaylist()!.refreshPlaylist(this, true);
     }
 
     public removeElement(index : number)
@@ -257,7 +265,7 @@ export class Playlist extends PlaylistElement
         }
         let parentMap = Playlist.buildParentMap(playlistSet);
         for (let [parentPlaylist, children] of parentMap)
-            children.forEach(childId => parentPlaylist.refreshPlaylist(childId));
+            children.forEach(childId => parentPlaylist.refreshPlaylistById(childId));
 
         // this.exportPlaylist()
     }
@@ -440,7 +448,7 @@ export class Playlist extends PlaylistElement
         }
         let parentMap = Playlist.buildParentMap(playlistSet);
         for (let [parentPlaylist, children] of parentMap)
-            children.forEach(childId => parentPlaylist.refreshPlaylist(childId));
+            children.forEach(childId => parentPlaylist.refreshPlaylistById(childId));
 
         // this.exportPlaylist()
     }
