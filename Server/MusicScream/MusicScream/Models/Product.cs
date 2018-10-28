@@ -25,4 +25,10 @@ namespace MusicScream.Models
         public IEnumerable<FranchiseProductLink> FranchiseLinks { get; set; }
         public IEnumerable<FranchiseProductLink> SubProductLinks { get; set; }
     }
+
+    public class ProductInfo
+    {
+        public int Id { get; set; }
+        public string Title { get; set; }
+    }
 }

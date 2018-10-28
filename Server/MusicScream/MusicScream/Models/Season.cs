@@ -14,4 +14,10 @@ namespace MusicScream.Models
         public IEnumerable<SeasonSongLink> SongLinks { get; set; }
         public IEnumerable<SeasonProductLink> ProductLinks { get; set; }
     }
+
+    public class SeasonInfo
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
 }

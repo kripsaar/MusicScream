@@ -13,11 +13,16 @@ namespace MusicScream.Models
         public uint Year { get; set; }
         public string Filename { get; set; }
 
-        public IEnumerable<SongPlaylistLink> PlaylistLinks { get; set; }
         public IEnumerable<ArtistSongLink> ArtistLinks { get; set; }
         public IEnumerable<AlbumSongLink> AlbumLinks { get; set; }
         public IEnumerable<SongGenreLink> GenreLinks { get; set; }
         public IEnumerable<ProductSongLink> ProductLinks { get; set; }
         public IEnumerable<SeasonSongLink> SeasonLinks { get; set; }
+    }
+
+    public class SongInfo
+    {
+        public int Id { get; set; }
+        public string Title { get; set; }
     }
 }

@@ -12,4 +12,10 @@ namespace MusicScream.Models
         public IEnumerable<SongGenreLink> SongLinks { get; set; }
         public IEnumerable<AlbumGenreLink> AlbumLinks { get; set; }
     }
+
+    public class GenreInfo
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
 }

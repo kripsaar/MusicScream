@@ -17,4 +17,10 @@ namespace MusicScream.Models
         public IEnumerable<ArtistUnitLink> UnitArtistLinks { get; set; }
         public IEnumerable<ArtistSongLink> SongLinks { get; set; }
     }
+
+    public class ArtistInfo
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
 }
