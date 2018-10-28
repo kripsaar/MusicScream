@@ -2,6 +2,9 @@ import { Song, PlayableElement } from "../../Models/SongModel";
 import { PlaylistTO, PlaylistTOElement, PlaylistElement } from "../../Models/PlaylistModel";
 import { Communication } from "../../Communication";
 
+// TODO: Internal vs External functions
+// TODO: Refresh Playlist if inner playlists get changed
+
 export class Playlist extends PlaylistElement
 {
     private static playlistCache : Map<number, Set<Playlist>> = new Map<number, Set<Playlist>>();
@@ -217,11 +220,81 @@ export class Playlist extends PlaylistElement
         return element;
     }
 
+    private refreshPlaylist(playlistId : number)
+    {
+        let playlistIndexes = this.internalList.map((element, index) => 
+        {
+            if(element.getParentPlaylist() == this && element instanceof PlaylistMarker && element.isStart() && element.getPlaylist().id == playlistId)
+                return index;
+            return -1;
+        }).filter(value => value >= 0).sort((a, b) => b - a);
+        for (let index of playlistIndexes)
+        {
+            let playlist = (this.internalList[index] as PlaylistMarker).getPlaylist();
+            let endIndex = this.internalList.findIndex(element => 
+                element instanceof PlaylistMarker 
+                && !element.isStart()
+                && element.getPlaylist() == playlist);
+            if (endIndex == -1)
+                continue;
+            this.internalList.splice(index + 1, endIndex - index - 2, ...playlist.internalList);
+        }
+    }
+
     public removeElement(index : number)
+    {
+        let element = this.internalList[index];
+        let parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist == null)
+            throw("No parent playlist found!");
+        let indexInParent = parentPlaylist.findElement(element);
+        let playlistSet = Playlist.playlistCache.get(parentPlaylist.id);
+        if (playlistSet == undefined)
+            throw "Could not find playlistSet";
+        for (let playlist of playlistSet)
+        {
+            playlist.removeElementInternal(indexInParent);
+        }
+        let parentMap = Playlist.buildParentMap(playlistSet);
+        for (let [parentPlaylist, children] of parentMap)
+            children.forEach(childId => parentPlaylist.refreshPlaylist(childId));
+
+        // this.exportPlaylist()
+    }
+
+    private static buildParentMap(playlistSet : Set<Playlist>) : Map<Playlist,number[]>
+    {
+        var workingSet : Playlist[] = [...playlistSet];
+        let parentMap = new Map<Playlist,number[]>();
+        while(workingSet.length > 0)
+        {
+            let element = workingSet.shift()!;
+            let parent = element.parentPlaylist;
+            if (parent != null)
+            {
+                var children : number[] = [];
+                if (parentMap.has(parent))
+                {
+                    children = parentMap.get(parent)!;
+                    parentMap.delete(parent);
+                }
+                children.push(element.id);
+                parentMap.set(parent, children);
+                if (workingSet.indexOf(parent) == -1)
+                    workingSet.push(parent);
+            }
+        }
+        return parentMap;
+        
+    }
+
+    private removeElementInternal(index : number)
     {
         if (index < 0 || index >= this.internalList.length)
             throw "Index out of bounds!";
         var element = this.internalList[index];
+        if (element.getParentPlaylist() != this)
+            throw "Say what?!";
         if (!Playlist.isPlaylistMarker(element))
         {
             this.internalList.splice(index, 1);
@@ -248,14 +321,8 @@ export class Playlist extends PlaylistElement
             this.setSongCount(this.songCount - playlistMarker.getPlaylist().songCount);
         }
         
-        var parentPlaylist = element.getParentPlaylist();
-        if (parentPlaylist != null && parentPlaylist != this)
-            parentPlaylist.removeElement(this.findElement(element));
-
         if (this.currentIndex < 0)
             this.setCurrentIndex(0);
-
-        this.exportPlaylist();
     }
 
     public getNextSong() : PlayableElement | null
