@@ -64,7 +64,8 @@ export class Playlist extends PlaylistElement
             {
                 var subPlaylist = await Playlist.fromPlaylistTO(element);
                 subPlaylist.setParentPlaylist(playlist);
-                playlist.internalList.push(subPlaylist);
+                playlist.internalList.push(subPlaylist.startMarker, ...subPlaylist.internalList, subPlaylist.endMarker);
+                songCount += playlist.songCount;
             }
             else
             {
@@ -293,7 +294,6 @@ export class Playlist extends PlaylistElement
             }
         }
         return parentMap;
-        
     }
 
     private removeElementInternal(index : number)
