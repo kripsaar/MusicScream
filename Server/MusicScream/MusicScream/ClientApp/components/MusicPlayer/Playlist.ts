@@ -518,14 +518,22 @@ export class Playlist extends PlaylistElement
         var element = this.internalList[index];
 
         var parentPlaylist = element.getParentPlaylist();
-        if (parentPlaylist != null && parentPlaylist != this)
-            parentPlaylist.foldPlaylist(this.findElement(element));
+        if (parentPlaylist == null)
+            throw "No parent playlist found!";
 
+        parentPlaylist.foldPlaylistInternal(parentPlaylist.findElement(element));
+    }
+
+    private foldPlaylistInternal(index : number)
+    {
+        if (index < 0 || index >= this.internalList.length)
+            throw "Index out of bounds!";
+        let element = this.internalList[index];
         if (!Playlist.isPlaylistMarker(element))
             return;
-        if (!element.isStart())
-            index = this.internalList.findIndex(value => Playlist.isPlaylistMarker(value) && value == element && value.isStart());
         var playlist = element.getPlaylist();
+        if (!element.isStart())
+            index = this.internalList.indexOf(playlist.getStartMarker());
         var currentIndex = this.currentIndex;
         var limit = playlist.internalList.length + 2;
         this.internalList.splice(index, limit, playlist);
@@ -537,6 +545,10 @@ export class Playlist extends PlaylistElement
         }
         else if (currentIndex >= index + limit)
             this.setCurrentIndex(currentIndex - (limit - 1))
+
+        let parentPlaylist = this.getParentPlaylist();
+        if (parentPlaylist != null)
+            parentPlaylist.refreshPlaylist(this, true);
     }
 
     public unfoldPlaylist(index : number)
@@ -547,9 +559,20 @@ export class Playlist extends PlaylistElement
         if (!Playlist.isPlaylist(element))
             return;
 
-        var parentPlaylist = element.getParentPlaylist();
-        if (parentPlaylist != null && parentPlaylist != this)
-            parentPlaylist.unfoldPlaylist(this.findElement(element));
+        let parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist == null)
+            throw "No parent playlist found!";
+
+        parentPlaylist.unfoldPlaylistInternal(parentPlaylist.findElement(element));
+    }
+
+    private unfoldPlaylistInternal(index : number)
+    {
+        if (index < 0 || index >= this.internalList.length)
+            throw "Index out of bounds!";
+        var element = this.internalList[index];
+        if (!Playlist.isPlaylist(element))
+            return;
 
         var currentIndex = this.currentIndex;
         this.internalList.splice(index, 1, element.getStartMarker(), ...element.internalList, element.getEndMarker());
@@ -558,6 +581,10 @@ export class Playlist extends PlaylistElement
             this.setCurrentIndex(index + element.currentIndex + 1);
         if (currentIndex > index)
             this.setCurrentIndex(currentIndex + element.internalList.length + 2);
+
+        let parentPlaylist = this.getParentPlaylist();
+        if (parentPlaylist != null)
+            parentPlaylist.refreshPlaylist(this, true);
     }
 
     public moveElement(index : number, newIndex : number)
