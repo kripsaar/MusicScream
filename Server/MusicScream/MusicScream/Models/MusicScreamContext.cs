@@ -16,7 +16,7 @@ namespace MusicScream.Models
         public DbSet<ArtistSongLink> ArtistSongLinks { get; set; }
 
         public DbSet<Playlist> Playlists { get; set; }
-        public DbSet<SongPlaylistLink> SongPlaylistLinks { get; set; }
+        public DbSet<PlaylistElement> PlaylistElements { get; set; }
 
         public DbSet<Album> Albums { get; set; }
         public DbSet<AlbumSongLink> AlbumSongLinks { get; set; }
@@ -44,19 +44,25 @@ namespace MusicScream.Models
 
             SetSchemaForAllDbSets(modelBuilder);
 
-            modelBuilder.Entity<SongPlaylistLink>()
-                .HasKey(_ => new {_.SongId, _.PlaylistId});
+            modelBuilder.Entity<PlaylistElement>()
+                .HasKey(_ => new { _.ParentPlaylistId, _.Position });
 
-            modelBuilder.Entity<SongPlaylistLink>()
-                .HasOne(spl => spl.Song)
-                .WithMany(s => s.PlaylistLinks)
-                .HasForeignKey(spl => spl.SongId);
+            modelBuilder.Entity<PlaylistElement>()
+                .HasOne(pe => pe.ParentPlaylist)
+                .WithMany(pl => pl.PlaylistElements)
+                .HasForeignKey(pe => pe.ParentPlaylistId)
+                .IsRequired();
 
-            modelBuilder.Entity<SongPlaylistLink>()
-                .HasOne(spl => spl.Playlist)
-                .WithMany(pl => pl.SongPlaylistLinks)
-                .HasForeignKey(spl => spl.PlaylistId);
+            modelBuilder.Entity<PlaylistElement>()
+                .HasOne(pe => pe.Playlist)
+                .WithMany()
+                .HasForeignKey(pe => pe.PlaylistId);
 
+            modelBuilder.Entity<PlaylistElement>()
+                .HasOne(pe => pe.Song)
+                .WithMany()
+                .HasForeignKey(pe => pe.SongId);
+            
             modelBuilder.Entity<SongGenreLink>()
                 .HasKey(_ => new {_.SongId, _.GenreId});
 
