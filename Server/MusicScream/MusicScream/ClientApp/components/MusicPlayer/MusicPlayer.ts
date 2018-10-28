@@ -1,8 +1,9 @@
 import * as React from 'react';
 import {Communication} from '../../Communication';
-import {Song} from '../../Models/SongModel';
+import {Song, PlayableElement} from '../../Models/SongModel';
 import { MusicPlayerControls } from './MusicPlayerControls';
 import { SongList } from './SongList';
+import { Playlist } from './Playlist';
 
 const STOP_STATE : string = "stop";
 const PLAY_STATE : string = "play";
@@ -11,9 +12,9 @@ const PAUSE_STATE : string = "pause";
 export class MusicPlayer
 {
     public audioElement : HTMLAudioElement;
-    public songList : SongList;
+    public playlist : Playlist;
 
-    selectedSong : Song | null;
+    selectedSong : PlayableElement | null;
     nextSong: Song | undefined;
     previousSong: Song | undefined;
     songState: string;
@@ -21,7 +22,7 @@ export class MusicPlayer
 
     constructor()
     {
-        this.songList = new SongList([]);
+        this.playlist = Playlist.getEmptyPlaylist();
         this.selectedSong = null;
         this.nextSong = undefined;
         this.previousSong = undefined;
@@ -33,17 +34,17 @@ export class MusicPlayer
         document.body.appendChild(this.audioElement);
     }
 
-    private getSongUrl(song: Song) : string
+    private getSongUrl(song: PlayableElement) : string
     {
-        return "Music/GetSong?songId=" + song.id;
+        return "Music/GetSong?songId=" + song.getSong().id;
     }
 
-    public getSongArtUrl(song: Song) : string
+    public getSongArtUrl(song: PlayableElement) : string
     {
-        return "Music/GetAlbumArt?songId=" + song.id;
+        return "Music/GetAlbumArt?songId=" + song.getSong().id;
     }
 
-    private selectSong(song : Song | null)
+    private selectSong(song : PlayableElement | null)
     {
         if (!song)
             return;
@@ -53,7 +54,7 @@ export class MusicPlayer
 
     public startPlayback()
     {
-        var song = this.songList.getCurrentSong();
+        var song = this.playlist.getCurrentSong();
         if (song == null)
             return;
         this.selectedSong = song;
@@ -78,14 +79,14 @@ export class MusicPlayer
     {
         if (!this.audioElement)
             return;
-        this.selectSong(this.songList.getNextSong());
+        this.selectSong(this.playlist.selectNextSong());
     }
 
     public playPreviousSong()
     {
         if (!this.audioElement)
             return;
-        this.selectSong(this.songList.getPreviousSong());
+        this.selectSong(this.playlist.selectPreviousSong());
     }
 }
 

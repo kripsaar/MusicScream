@@ -168,16 +168,16 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
                 : null}
                 <div style={{marginTop: "5px", marginLeft: "5px"}}>
                     <Link className="media-control-song-link" to={ "/" }>
-                        {this.musicPlayer.selectedSong ? this.musicPlayer.selectedSong.title : undefined}
+                        {this.musicPlayer.selectedSong ? this.musicPlayer.selectedSong.getSong().title : undefined}
                     </Link>
                     <br/>
                     { this.musicPlayer.selectedSong ?
-                        this.musicPlayer.selectedSong.artists.map((artist, index) => 
+                        this.musicPlayer.selectedSong.getSong().artists.map((artist, index) => 
                             <span key={index}>
                                 <Link className="media-control-artist-link" to={"/Artist/" + artist.id}>
                                     {artist.name}
                                 </Link>
-                                {index < this.musicPlayer.selectedSong!.artists.length - 1 ? ", " : ""}
+                                {index < this.musicPlayer.selectedSong!.getSong().artists.length - 1 ? ", " : ""}
                             </span>
                         )
                      : "Unknown Artist"}

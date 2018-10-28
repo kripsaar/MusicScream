@@ -6,11 +6,12 @@ import { Draggable, Droppable, DragComponent, DragState } from "react-dragtastic
 import { SongListContainer } from './SongListContainer';
 
 import { MdDragHandle } from 'react-icons/md';
+import { Playlist } from './Playlist';
+import { PlaylistTO } from 'ClientApp/Models/PlaylistModel';
 
-interface ISongListComponentState
+interface IPlaylistComponentState
 {
-    songList : SongList;
-    songListContainer: SongListContainer;
+    playlist : Playlist;
     songState: string;
     currIndex: number;
 }
@@ -19,18 +20,17 @@ const STOP_STATE : string = "stop";
 const PLAY_STATE : string = "play";
 const PAUSE_STATE : string = "pause";
 
-export class SongListComponent extends React.Component<{}, ISongListComponentState>
+export class PlaylistComponent extends React.Component<{}, IPlaylistComponentState>
 {
     musicPlayer = MusicPlayerInstance;
 
-    constructor(props: {}, state: ISongListComponentState)
+    constructor(props: {}, state: IPlaylistComponentState)
     {
         super(props, state);
-        var songList = new SongList([]);
+        var playlist = Playlist.getEmptyPlaylist();
         this.state = 
         {   
-            songList: songList,
-            songListContainer: new SongListContainer(songList),
+            playlist: playlist,
             songState: STOP_STATE,
             currIndex: 0
         }
@@ -38,13 +38,13 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
 
     public componentDidMount()
     {
-        this.getSongList();
+        // this.getSongList();
         this.refreshLibrary();
     }
 
     public componentWillUnmount()
     {
-        this.state.songList.removeIndexChangeEventHandler(this.handleIndexChange);
+        // this.state.songList.removeIndexChangeEventHandler(this.handleIndexChange);
     }
 
     private handleIndexChange = (newIndex: number) => 
@@ -55,38 +55,69 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
     private refreshLibrary()
     {
         Communication.simpleAjax("Music/RefreshMusicLibrary", 
-            () => { this.getSongList(); },
+            () => { this.getPlaylist(1); },
+            // () => { this.getSongList(); },
             () => { console.log("Refresh failed!"); }
         );
     }
 
-    private getSongList()
+    private async getPlaylist(playlistId : number)
     {
-        Communication.getJson("Music/GetAllSongs",
-            (data: any) =>
-            {
-                if (data.songs)
-                {
-                    // var songList = new SongList(data.songs);
-                    var externalSongList = new SongList(data.songs.slice(0, 2), "External Song List");
-                    var internalSongList = new SongList(data.songs.slice(3), "Internal Song List");
-                    var deepSongList = new SongList(data.songs.slice(0, 3), "Deeper Song List");
-                    internalSongList.queueSongList(deepSongList);
-                    internalSongList.queueSongs(...data.songs.slice(4, 5));
-                    externalSongList.queueSongList(internalSongList);
-                    var songListContainer = new SongListContainer(externalSongList);
-                    var songList = externalSongList;
-                    this.setState({songList: songList, songListContainer: songListContainer});
-                    this.musicPlayer.songList = songList;
-                    songListContainer.addIndexChangeEventHandler(this.handleIndexChange);
-                }
-            }
-        );
+        let data = await Communication.simpleAjaxPromise("Playlist/GetPlaylist?Id=" + playlistId);
+        if (data.playlistTO)
+        {
+            var playlistTO : PlaylistTO = data.playlistTO;
+            var playlist = await Playlist.fromPlaylistTO(playlistTO);
+            this.setState({playlist: playlist});
+            this.musicPlayer.playlist = playlist;
+        }
+    }
+
+    private async getSongList()
+    {
+        let data = await Communication.getJsonPromise("Music/GetAllSongs");
+        if (data.songs)
+        {
+            var externalPlaylist = await Playlist.createPlaylist(false ,data.songs.slice(0, 2), "External Song List");
+            var internalPlaylist = await Playlist.createPlaylist(false, data.songs.slice(3), "Internal Song List");
+            var deepPlaylist = await Playlist.createPlaylist(false, data.songs.slice(0, 3), "Deeper Song List");
+            internalPlaylist.queuePlaylist(deepPlaylist);
+            internalPlaylist.queuePlaylist(deepPlaylist);
+            internalPlaylist.removeElement(internalPlaylist.getLength() - 2);
+            internalPlaylist.queueSongs(...data.songs.slice(4, 5));
+            externalPlaylist.queuePlaylist(internalPlaylist);
+
+            var playlist = externalPlaylist;
+
+            this.setState({playlist: externalPlaylist});
+            this.musicPlayer.playlist = playlist;
+            // songListContainer.addIndexChangeEventHandler(this.handleIndexChange);
+        }
+        // Communication.getJson("Music/GetAllSongs",
+        //     (data: any) =>
+        //     {
+        //         if (data.songs)
+        //         {
+        //             var externalPlaylist = new Playlist(false ,data.songs.slice(0, 2), "External Song List");
+        //             var internalPlaylist = new Playlist(false, data.songs.slice(3), "Internal Song List");
+        //             var deepPlaylist = new Playlist(false, data.songs.slice(0, 3), "Deeper Song List");
+        //             internalPlaylist.queuePlaylist(deepPlaylist);
+        //             internalPlaylist.queueSongs(...data.songs.slice(4, 5));
+        //             externalPlaylist.queuePlaylist(internalPlaylist);
+
+        //             var playlist = externalPlaylist;
+
+        //             this.setState({playlist: externalPlaylist});
+        //             this.musicPlayer.playlist = playlist;
+        //             // songListContainer.addIndexChangeEventHandler(this.handleIndexChange);
+        //         }
+        //     }
+        // );
     }
 
     private selectSong(index: number)
     {
-        var song = this.state.songListContainer.selectSong(index);
+        var song = this.state.playlist.selectSong(index);
         if (!song)
             return;
         if (this.musicPlayer)
@@ -99,8 +130,8 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
             return;
         if (currIndex == newIndex || currIndex + 1 == newIndex)
             return;
-        this.state.songListContainer.moveElement(currIndex, newIndex);
-        this.setState({songListContainer: this.state.songListContainer});
+        this.state.playlist.moveElement(currIndex, newIndex);
+        this.setState({playlist: this.state.playlist});
     }
 
     public render()
@@ -109,7 +140,7 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
 
             <div className="selection-list" style={{display: "flex", flexDirection: "column"}}>
                 {
-                    this.state.songListContainer.getFlatList().map((element, index) =>
+                    this.state.playlist.getFlatList().map((element, index) =>
                         <DragState>
                             {({currentlyDraggingId, isDragging, currentlyHoveredDroppableId}) => (
                                 <div>
@@ -154,17 +185,17 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                             <div className="draggable-element" style={{display: "flex", alignItems: "center"}}
                                                 onClick={() => 
                                                 {
-                                                    if (SongListContainer.isSong(element))
+                                                    if (Playlist.isSong(element))
                                                         this.selectSong(index);
-                                                    else if (SongListContainer.isSongListMarker(element))
+                                                    else if (Playlist.isPlaylistMarker(element))
                                                     {
-                                                        this.state.songListContainer.shrinkSongList(index);
-                                                        this.setState({songListContainer: this.state.songListContainer});
+                                                        this.state.playlist.foldPlaylist(index);
+                                                        this.setState({playlist: this.state.playlist});
                                                     }
-                                                    else if (SongListContainer.isSongListContainer(element))
+                                                    else if (Playlist.isPlaylist(element))
                                                     {
-                                                        this.state.songListContainer.expandSongList(index);
-                                                        this.setState({songListContainer: this.state.songListContainer});
+                                                        this.state.playlist.unfoldPlaylist(index);
+                                                        this.setState({playlist: this.state.playlist});
                                                     }
                                                 }}
                                             >
@@ -184,9 +215,9 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                                 </span>
                                                 <span>
                                                     {(index + 1) + ". " 
-                                    + (SongListContainer.isSong(element) ? ((element.artists.length > 0 ? element.artists.map(artist => artist.name).join(", ") : "Unknown Artist") + " - " + element.title)
-                                    : (SongListContainer.isSongListMarker(element) ? (element.isStart() ? "[Start] " : "[End] ") + element.getSongListContainer().getName()
-                                    : "[Folded] " + element.getName()))}
+                                    + (Playlist.isSong(element) ? ((element.getSong().artists.length > 0 ? element.getSong().artists.map(artist => artist.name).join(", ") : "Unknown Artist") + " - " + element.getSong().title)
+                                    : (Playlist.isPlaylistMarker(element) ? (element.isStart() ? "[Start] " : "[End] ") + element.getPlaylist().getName()
+                                    : "[Folded] " + (element as Playlist).getName()))}
                                                 </span>
                                             </div>
                                         </div>
@@ -214,22 +245,22 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                                                     </span>
                                                     <span>
                                                         {(index + 1) + ". " 
-                                    + (SongListContainer.isSong(element) ? ((element.artists.length > 0 ? element.artists.map(artist => artist.name).join(", ") : "Unknown Artist") + " - " + element.title)
-                                    : (SongListContainer.isSongListMarker(element) ? (element.isStart() ? "[Start] " : "[End] ") + element.getSongListContainer().getName()
-                                    : "[Folded] " + element.getName()))}
+                                    + (Playlist.isSong(element) ? ((element.getSong().artists.length > 0 ? element.getSong().artists.map(artist => artist.name).join(", ") : "Unknown Artist") + " - " + element.getSong().title)
+                                    : (Playlist.isPlaylistMarker(element) ? (element.isStart() ? "[Start] " : "[End] ") + element.getPlaylist().getName()
+                                    : "[Folded] " + (element as Playlist).getName()))}
                                                     </span>
                                                 </div>
                                             )}
                                         </DragComponent>
                                     </div>
-                                    {(isDragging && index == this.state.songListContainer.getFlatList().length -1) ? 
+                                    {(isDragging && index == this.state.playlist.getFlatList().length -1) ? 
                                         <div className={"draggable-list-item-empty" 
                                             + ((currentlyHoveredDroppableId != (index + 1))
                                             ? " hidden-drag" : "")
                                             }
                                             style={{ overflow: "visible" }}
                                         >
-                                            <Droppable accepts="draggableList" id={this.state.songListContainer.getFlatList().length}
+                                            <Droppable accepts="draggableList" id={this.state.playlist.getFlatList().length}
                                                 onDrop={() => this.moveSongListContainerElement(currentlyDraggingId, index + 1)}
                                             >
                                                 {({events, isOver}) => (
@@ -256,23 +287,6 @@ export class SongListComponent extends React.Component<{}, ISongListComponentSta
                     )
                 }
             </div>
-            <div style={{width: "100%", height: "100px"}}/>
-            <ul className="selection-list">
-                {
-                    this.state.songList.getFlatList().map((song, index) =>
-                        <li key={"song-"+song.id+"-"+index} className="hidden-parent list-item"
-                            style={{background: this.state.currIndex == index ? "#C6EDFF" : undefined}}
-                            onClick={() => 
-                            {
-                                this.selectSong(index);
-                            }}>
-                            {(index + 1) + ". " + (song.artists.length > 0 ? song.artists.map(artist => artist.name).join(", ") : "Unknown Artist") + " - " + song.title}
-                        </li>
-                    )
-                }
-            </ul>
-            
-            <div style={{width: "100%", height: "200px"}}/>
         </div>
     }
 }
