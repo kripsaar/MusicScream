@@ -426,26 +426,41 @@ export class Playlist extends PlaylistElement
 
     public addSongs(index : number, ...songs : Song[])
     {
+        let element = this.internalList[index];
+        let parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist == null)
+            throw("No parent playlist found!");
+        let indexInParent = parentPlaylist.findElement(element);
+        let playlistSet = Playlist.playlistCache.get(parentPlaylist.id);
+        if (playlistSet == undefined)
+            throw "Could not find playlistSet";
+        for (let playlist of playlistSet)
+        {
+            playlist.addSongsInternal(indexInParent, ...songs);
+        }
+        let parentMap = Playlist.buildParentMap(playlistSet);
+        for (let [parentPlaylist, children] of parentMap)
+            children.forEach(childId => parentPlaylist.refreshPlaylist(childId));
+
+        // this.exportPlaylist()
+    }
+
+    private addSongsInternal(index : number, ...songs : Song[])
+    {
         if (index < 0)
             throw "Index out of bounds!"
         if (index >= this.internalList.length)
             return this.queueSongs(...songs);
-        var element = this.internalList[index];
         var playableElements = songs.map(song => new PlayableElement(song));
         this.internalList.splice(index, 0, ...playableElements);
         if (index <= this.currentIndex)
             this.setCurrentIndex(this.currentIndex + songs.length);
         this.setSongCount(this.songCount + songs.length);
-
-        var parentPlaylist = element.getParentPlaylist();
-        if (parentPlaylist != null && parentPlaylist != this)
-            parentPlaylist.addSongs(this.findElement(element), ...songs);
-
-        this.exportPlaylist();
     }
 
     public addPlaylist(index: number, playlist : Playlist)
     {
+        // create clone of playlist, yo, or just redo the whole thing
         if (index < 0)
             throw "Index out of bounds!";
         if (index >= this.internalList.length)
@@ -470,7 +485,8 @@ export class Playlist extends PlaylistElement
     {
         this.internalList.push(...songs.map(song => new PlayableElement(song)));
         this.setSongCount(this.songCount + songs.length);
-        this.exportPlaylist();
+        if (this.parentPlaylist == null)
+            this.exportPlaylist();
     }
 
     public queuePlaylist(playlist : Playlist)
@@ -481,7 +497,8 @@ export class Playlist extends PlaylistElement
         this.internalList.push(...playlist.internalList);
         this.internalList.push(playlist.getEndMarker());
         this.setSongCount(this.songCount + playlist.internalList.length + 2)
-        this.exportPlaylist();
+        if (this.parentPlaylist == null)
+            this.exportPlaylist();
     }
 
     public foldPlaylist(index : number)
