@@ -46,9 +46,25 @@ export class Communication
         );
     }
 
-    public static getJson(url: string, onSuccess?: ((data: any) => void), onError?: ((data: any) => void))
+    public static simpleAjaxPromise(url: string) : Promise<any>
+    {
+        return new Promise((resolve, reject) =>
+        {
+            this.simpleAjax(url, resolve, reject);
+        });
+    }
+
+    public static getJson(url: string, onSuccess?: ((data: any) => void))
     {
         $.getJSON(url, onSuccess);
+    }
+
+    public static getJsonPromise(url: string) : Promise<any>
+    {
+        return new Promise((resolve) => 
+        {
+            $.getJSON(url, resolve);
+        });
     }
 
     public static ajaxPost(url: string, formData: FormData, onSuccess?: ((data: any) => void), onError?: ((data: any) => void))
@@ -94,5 +110,13 @@ export class Communication
                 }
             }
         );
+    }
+
+    public static ajaxPostJsonPromise(url: string, data: any) : Promise<any>
+    {
+        return new Promise((resolve, reject) =>
+        {
+            this.ajaxPostJson(url, data, resolve, reject);
+        });
     }
 }
