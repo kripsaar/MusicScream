@@ -490,6 +490,11 @@ export class Playlist extends PlaylistElement
         this.exportPlaylist();
     }
 
+    private addPlaylistInternal(index : number, playlist : Playlist)
+    {
+
+    }
+
     public queueSongs(...songs : Song[])
     {
         this.internalList.push(...songs.map(song => new PlayableElement(song)));
