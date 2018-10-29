@@ -166,7 +166,7 @@ export class Playlist extends PlaylistElement
 
     private findElement(element : PlaylistElement) : number
     {
-        return this.internalList.findIndex(value => value == element);
+        return this.internalList.indexOf(element);
     }
 
     public setParentPlaylist(parentPlaylist: Playlist)
