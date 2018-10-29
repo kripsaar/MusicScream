@@ -32,13 +32,14 @@ export class Playlist extends PlaylistElement
 
     private setId(id : number)
     {
-        if (id > 0 && this.id != id)
+        let oldId = this.id;
+        this.id = id;
+        if (id > 0 && oldId != id)
         {
-            if (this.id > 0)
+            if (oldId > 0)
                 Playlist.removePlaylistFromCache(this);
             Playlist.addPlaylistToCache(this);
         }
-        this.id = id;
     }
 
     public static getEmptyPlaylist() : Playlist
