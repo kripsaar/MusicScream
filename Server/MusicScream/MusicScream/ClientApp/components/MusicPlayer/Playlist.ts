@@ -460,7 +460,7 @@ export class Playlist extends PlaylistElement
             throw "Index out of bounds!"
         if (index >= this.internalList.length)
             return this.queueSongs(...songs);
-        var playableElements = songs.map(song => new PlayableElement(song));
+        var playableElements = songs.map(song => new PlayableElement(song, this));
         this.internalList.splice(index, 0, ...playableElements);
         if (index <= this.currentIndex)
             this.setCurrentIndex(this.currentIndex + songs.length);
