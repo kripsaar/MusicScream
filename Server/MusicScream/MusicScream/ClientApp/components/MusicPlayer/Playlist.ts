@@ -602,7 +602,6 @@ export class Playlist extends PlaylistElement
 
     public moveElement(index : number, newIndex : number)
     {
-        // TODO: parent element and stuff
         if (index < 0 || index >= this.internalList.length)
             throw "Index out of bounds!";
         var element = this.internalList[index];
@@ -612,23 +611,65 @@ export class Playlist extends PlaylistElement
         if (newIndex < 0)
             newIndex = 0;
 
-        this.internalList.splice(index, 1);
+        var destElement : PlaylistElement | null = null;
         if (newIndex < this.internalList.length)
-            this.internalList.splice(newIndex, 0, element);
+            destElement = this.internalList[newIndex];
+
+        let srcParent = element.getParentPlaylist();
+        if (srcParent == null)
+            throw "Couldn't find parent of source";
+
+        let srcSet = Playlist.playlistCache.get(srcParent.id);
+        if (srcSet == null)
+            throw "Couldn't find parent set for source";
+        let refreshSet : Set<Playlist>;
+        let srcIndex = srcParent.findElement(element);
+        if (srcIndex == -1)
+            throw "Couldn't find source element's index";
+        for (let parent of srcSet)
+            parent.removeElementInternal(srcIndex);
+
+        if (destElement == null)
+        {
+            this.internalList.push(element);
+            element.setParentPlaylist(this)
+            refreshSet = new Set<Playlist>(srcSet);
+        }
         else
         {
-            newIndex = this.internalList.length;
-            this.internalList.push(element);
+            var destIndex : number;
+            var destParent : Playlist | null;
+            if (destElement instanceof PlaylistMarker && !destElement.isStart())
+            {
+                destParent = destElement.getPlaylist();
+                destIndex = destParent.internalList.length;
+            }
+            destParent = destElement.getParentPlaylist();
+            if (destParent == null)
+                throw "Couldn't find destination playlist";
+            destIndex = destParent.findElement(destElement);
+            let destSet = Playlist.playlistCache.get(destParent.id);
+            if (destSet == null)
+                throw "Couldn't find destination playlist set";
+            refreshSet = new Set<Playlist>(function*() {yield* srcSet; yield* destSet;}());
+            for (let parent of destSet)
+            {
+                if (element instanceof PlayableElement)
+                    parent.addSongsInternal(destIndex, element.getSong());
+                else if (element instanceof Playlist)
+                    parent.addPlaylistInternal(destIndex, element);
+            }
+            destParent.internalList.splice(destIndex, 1, element);
+            element.setParentPlaylist(destParent);
         }
 
-        if (currentIndex == index)
-            this.setCurrentIndex(newIndex);
-        else if (currentIndex < index && newIndex <= currentIndex)
-            this.setCurrentIndex(currentIndex + 1);
-        else if (index < currentIndex && currentIndex < newIndex)
-            this.setCurrentIndex(currentIndex - 1);
+        let parentMap = Playlist.buildParentMap(refreshSet);
+        for (let [parentPlaylist, children] of parentMap)
+            children.forEach(childId => parentPlaylist.refreshPlaylistById(childId));
 
-        this.exportPlaylist();
+        // TODO: Something, something current index
+
+        // this.exportPlaylist();
     }
 
     private async exportPlaylist()
