@@ -13,7 +13,6 @@ export class Playlist extends PlaylistElement
     private name : string;
     private internalList : PlaylistElement[] = [];
     private currentIndex : number;
-    private songCount : number = 0;
     
     private startMarker : PlaylistMarker;
     private endMarker : PlaylistMarker;
@@ -25,7 +24,6 @@ export class Playlist extends PlaylistElement
         this.name = name;
         listOfSongs.forEach(song => this.internalList.push(new PlayableElement(song)));
         this.currentIndex = 0;
-        this.songCount = listOfSongs.length;
         this.startMarker = new PlaylistMarker(this, true);
         this.endMarker = new PlaylistMarker(this, false);
     }
@@ -58,7 +56,6 @@ export class Playlist extends PlaylistElement
     {
         var playlist = new Playlist(true, [], playlistTO.name);
         playlist.setId(playlistTO.id);
-        var songCount = 0;
         for (let element of playlistTO.list)
         {
             if (Playlist.isPlaylistInfo(element))
@@ -66,15 +63,12 @@ export class Playlist extends PlaylistElement
                 var subPlaylist = await Playlist.fromPlaylistTO(element);
                 subPlaylist.setParentPlaylist(playlist);
                 playlist.internalList.push(subPlaylist.startMarker, ...subPlaylist.internalList, subPlaylist.endMarker);
-                songCount += playlist.songCount;
             }
             else
             {
-                songCount++;
                 playlist.internalList.push(new PlayableElement(element, playlist));
             }
         }
-        playlist.songCount = songCount;
 
         return playlist;
     }
@@ -141,17 +135,15 @@ export class Playlist extends PlaylistElement
 
     public getSongCount() : number
     {
-        return this.songCount;
+        let songCount = 0;
+        this.internalList.filter(element => element instanceof Playlist).forEach(element => songCount += (element as Playlist).getSongCount());
+        songCount += this.internalList.filter(element => element instanceof PlayableElement).length;
+        return songCount;
     }
 
     private setCurrentIndex(newIndex : number) 
     {
         this.currentIndex = newIndex;
-    }
-
-    private setSongCount(newCount : number)
-    {
-        this.songCount = newCount;
     }
 
     private getStartMarker() : PlaylistMarker
@@ -309,10 +301,6 @@ export class Playlist extends PlaylistElement
             this.internalList.splice(index, 1);
             if (this.currentIndex >= index)
                 this.setCurrentIndex(this.currentIndex - 1);
-            if (Playlist.isSong(element))
-                this.setSongCount(this.songCount - 1);
-            else if (element instanceof Playlist)
-                this.setSongCount(this.songCount - element.songCount);
         }
         else
         {
@@ -327,7 +315,6 @@ export class Playlist extends PlaylistElement
                 this.setCurrentIndex(startIndex - 1);
             else if (this.currentIndex > endIndex)
                 this.setCurrentIndex(this.currentIndex - length);
-            this.setSongCount(this.songCount - playlistMarker.getPlaylist().songCount);
         }
         
         if (this.currentIndex < 0)
@@ -464,7 +451,6 @@ export class Playlist extends PlaylistElement
         this.internalList.splice(index, 0, ...playableElements);
         if (index <= this.currentIndex)
             this.setCurrentIndex(this.currentIndex + songs.length);
-        this.setSongCount(this.songCount + songs.length);
     }
 
     public addPlaylist(index: number, playlist : Playlist)
@@ -486,7 +472,6 @@ export class Playlist extends PlaylistElement
         this.internalList.splice(index + 1 + playlist.internalList.length, 0, playlist.getEndMarker());
         if (index <= this.currentIndex)
             this.setCurrentIndex(this.currentIndex + playlist.internalList.length + 2);
-        this.setSongCount(this.songCount + playlist.internalList.length + 2);
         this.exportPlaylist();
     }
 
@@ -498,7 +483,6 @@ export class Playlist extends PlaylistElement
     public queueSongs(...songs : Song[])
     {
         this.internalList.push(...songs.map(song => new PlayableElement(song)));
-        this.setSongCount(this.songCount + songs.length);
         let parentPlaylist = this.getParentPlaylist();
         if (parentPlaylist == null)
             this.exportPlaylist();
@@ -514,7 +498,6 @@ export class Playlist extends PlaylistElement
         this.internalList.push(playlist.getStartMarker())
         this.internalList.push(...playlist.internalList);
         this.internalList.push(playlist.getEndMarker());
-        this.setSongCount(this.songCount + playlist.internalList.length + 2)
         let parentPlaylist = this.getParentPlaylist();
         if (parentPlaylist == null)
             this.exportPlaylist();
