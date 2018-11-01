@@ -478,6 +478,31 @@ export class Playlist extends PlaylistElement
             return;
         var element = this.internalList[index];
         var parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist == null)
+            throw "Could not find parent playlist";
+        let indexInParent : number;
+        if (element instanceof PlaylistMarker && !element.isStart())
+        {
+            parentPlaylist = element.getPlaylist();
+            indexInParent = parentPlaylist.internalList.length;
+        }
+        else
+            indexInParent = parentPlaylist.findElement(element);
+        let playlistSet = Playlist.playlistCache.get(parentPlaylist.id);
+        if (playlistSet == null)
+            throw "Could not find playlist set for parent";
+        for (let parent of playlistSet)
+        {
+            parent.addPlaylistInternal(indexInParent, playlist);
+        }
+        let parentMap = Playlist.buildParentMap(playlistSet);
+        for (let [parent, children] of parentMap)
+        {
+            children.forEach(childId => parent.refreshPlaylistById(childId));
+        }
+
+        // this.exportPlaylist();
+
         if (parentPlaylist != null && parentPlaylist != this)
             parentPlaylist.addPlaylist(this.findElement(element), playlist);
         
@@ -491,11 +516,52 @@ export class Playlist extends PlaylistElement
 
     private addPlaylistInternal(index : number, playlist : Playlist)
     {
+        if (index < 0)
+            throw "Index out of bounds!";
+        if (index >= this.internalList.length)
+            this.queuePlaylist(playlist);
+        if (playlist.containsPlaylist(this))
+            return;
+        
+        let playlistClone = playlist.clone();
+        playlistClone.setParentPlaylist(this);
 
+        this.internalList.splice(index, 0, playlistClone.getStartMarker(), ...playlistClone.internalList, playlistClone.getEndMarker());
+        // if (index <= this.currentIndex)
+        //     this.setCurrentIndex(this.currentIndex + playlist.internalList.length + 2);
+        // this.exportPlaylist();
+    }
+
+    private clone() : Playlist
+    {
+        let result = new Playlist(false, [], this.name, this.id);
+        for (var index = 0; index < this.internalList.length; ++index)
+        {
+            let element = this.internalList[index];
+            if (element instanceof PlaylistMarker && element.isStart())
+            {
+                let toAdd = element.getPlaylist().clone();
+                result.internalList.push(toAdd.getStartMarker(), ...toAdd.internalList, toAdd.getEndMarker());
+                index += element.getPlaylist().internalList.length + 1;
+                continue;
+            }
+            if (element instanceof Playlist)
+            {
+                let toAdd = element.clone();
+                result.internalList.push(toAdd.getStartMarker(), ...toAdd.internalList, toAdd.getEndMarker());
+                continue;
+            }
+            if (element instanceof PlayableElement)
+            {
+                result.internalList.push(new PlayableElement(element.getSong(), this));
+            }
+        }
+        return result;
     }
 
     public queueSongs(...songs : Song[])
     {
+        // TODO: Redo
         this.internalList.push(...songs.map(song => new PlayableElement(song)));
         let parentPlaylist = this.getParentPlaylist();
         if (parentPlaylist == null)
@@ -521,8 +587,6 @@ export class Playlist extends PlaylistElement
 
     public foldPlaylist(index : number)
     {
-        // TODO: Make sure folded playlist knows added songs
-        // IDEA: Just get playlist from server on unfold?
         if (index < 0 || index >= this.internalList.length)
             throw "Index out of bounds!";
         var element = this.internalList[index];
