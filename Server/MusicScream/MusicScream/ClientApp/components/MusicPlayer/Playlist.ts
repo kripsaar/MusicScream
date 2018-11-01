@@ -502,16 +502,6 @@ export class Playlist extends PlaylistElement
         }
 
         // this.exportPlaylist();
-
-        if (parentPlaylist != null && parentPlaylist != this)
-            parentPlaylist.addPlaylist(this.findElement(element), playlist);
-        
-        this.internalList.splice(index, 0, playlist.getStartMarker());
-        this.internalList.splice(index + 1, 0, ...playlist.internalList);
-        this.internalList.splice(index + 1 + playlist.internalList.length, 0, playlist.getEndMarker());
-        if (index <= this.currentIndex)
-            this.setCurrentIndex(this.currentIndex + playlist.internalList.length + 2);
-        this.exportPlaylist();
     }
 
     private addPlaylistInternal(index : number, playlist : Playlist)
