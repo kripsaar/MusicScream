@@ -246,6 +246,13 @@ export class Playlist extends PlaylistElement
     public removeElement(index : number)
     {
         let element = this.internalList[index];
+        if (element instanceof PlaylistMarker)
+        {
+            this.foldPlaylist(index);
+            if (!element.isStart())
+                index = this.findElement(element.getPlaylist());
+            element = element.getPlaylist();
+        }
         let parentPlaylist = element.getParentPlaylist();
         if (parentPlaylist == null)
             throw("No parent playlist found!");
@@ -426,7 +433,14 @@ export class Playlist extends PlaylistElement
         let parentPlaylist = element.getParentPlaylist();
         if (parentPlaylist == null)
             throw("No parent playlist found!");
-        let indexInParent = parentPlaylist.findElement(element);
+        let indexInParent : number;
+        if (element instanceof PlaylistMarker && !element.isStart())
+        {
+            parentPlaylist = element.getPlaylist();
+            indexInParent = parentPlaylist.internalList.length;
+        }
+        else
+            indexInParent = parentPlaylist.findElement(element);
         let playlistSet = Playlist.playlistCache.get(parentPlaylist.id);
         if (playlistSet == undefined)
             throw "Could not find playlistSet";
