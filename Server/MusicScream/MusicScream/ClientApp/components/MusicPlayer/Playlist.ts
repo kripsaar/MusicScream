@@ -2,9 +2,6 @@ import { Song, PlayableElement } from "../../Models/SongModel";
 import { PlaylistTO, PlaylistTOElement, PlaylistElement } from "../../Models/PlaylistModel";
 import { Communication } from "../../Communication";
 
-// TODO: Internal vs External functions
-// TODO: Refresh Playlist if inner playlists get changed
-
 export class Playlist extends PlaylistElement
 {
     private static playlistCache : Map<number, Set<Playlist>> = new Map<number, Set<Playlist>>();
@@ -144,6 +141,7 @@ export class Playlist extends PlaylistElement
     private setCurrentIndex(newIndex : number) 
     {
         this.currentIndex = newIndex;
+        this.refreshCurrentIndex();
     }
 
     private getStartMarker() : PlaylistMarker
@@ -198,6 +196,30 @@ export class Playlist extends PlaylistElement
         return null;
     }
 
+    private refreshCurrentIndex()
+    {
+        let parent = this.getParentPlaylist();
+        if (parent == null)
+            return;
+        var thisIndex = parent.findElement(this);
+        if (thisIndex == -1)
+        {
+            thisIndex = parent.findElement(this.getStartMarker());
+            if (thisIndex == -1)
+                throw "Parent does not contain this element!";
+        }
+        let thisElement = parent.internalList[thisIndex];
+        if (thisElement instanceof Playlist)
+        {
+            parent.currentIndex = thisIndex;
+        }
+        if (thisElement instanceof PlaylistMarker)
+        {
+            parent.currentIndex = thisIndex + 1 + this.currentIndex;
+        }
+        parent.refreshCurrentIndex();
+    }
+
     public selectSong(index : number) : PlayableElement | null
     {
         if (index < 0 || index >= this.internalList.length)
@@ -205,12 +227,12 @@ export class Playlist extends PlaylistElement
         var element = this.internalList[index];
         if (!Playlist.isSong(element))
             return null;
-        this.setCurrentIndex(index);
         var parentPlaylist = element.getParentPlaylist();
-        if (parentPlaylist != null && parentPlaylist != this)
-        {
-            parentPlaylist.selectSong(parentPlaylist.findElement(element));
-        }
+        if (parentPlaylist == null)
+            throw "Could not find parent playlist for selected song!";
+        if (parentPlaylist != this)
+            return parentPlaylist.selectSong(parentPlaylist.findElement(element));
+        this.setCurrentIndex(index);
         return element;
     }
 
@@ -469,7 +491,6 @@ export class Playlist extends PlaylistElement
 
     public addPlaylist(index: number, playlist : Playlist)
     {
-        // create clone of playlist, yo, or just redo the whole thing
         if (index < 0)
             throw "Index out of bounds!";
         if (index >= this.internalList.length)
