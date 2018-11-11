@@ -14,6 +14,8 @@ export class Playlist extends PlaylistElement
     private startMarker : PlaylistMarker;
     private endMarker : PlaylistMarker;
 
+    private indexChangeEventHandlers: Array<(newIndex : number) => void> = [];
+
     private constructor(temporary : boolean = true, listOfSongs : Song[] = [], name : string = "Unnamed Playlist", id : number = 0)
     {
         super();
@@ -143,6 +145,7 @@ export class Playlist extends PlaylistElement
     {
         this.currentIndex = newIndex;
         this.refreshCurrentIndex();
+        this.indexChangeEventHandlers.forEach(handler => handler(newIndex));
     }
 
     private getStartMarker() : PlaylistMarker
@@ -214,13 +217,12 @@ export class Playlist extends PlaylistElement
         let thisElement = parent.internalList[thisIndex];
         if (thisElement instanceof Playlist)
         {
-            parent.currentIndex = thisIndex;
+            parent.setCurrentIndex(thisIndex);
         }
         if (thisElement instanceof PlaylistMarker)
         {
-            parent.currentIndex = thisIndex + 1 + this.currentIndex;
+            parent.setCurrentIndex(thisIndex + 1 + this.currentIndex)
         }
-        parent.refreshCurrentIndex();
     }
 
     public selectSong(index : number) : PlayableElement | null
@@ -831,6 +833,20 @@ export class Playlist extends PlaylistElement
 
         return playlistTO;
     }
+
+    public addIndexChangeEventHandler(eventhandler : (newIndex : number) => void)
+    {
+        this.indexChangeEventHandlers.push(eventhandler);
+    }
+
+    public removeIndexChangeEventHandler(eventhandler : (newIndex : number) => void)
+    {
+        let index = this.indexChangeEventHandlers.indexOf(eventhandler);
+        if (index == -1)
+            return;
+        this.indexChangeEventHandlers.splice(index, 1);
+    }
+
 }
 
 class PlaylistMarker extends PlaylistElement
