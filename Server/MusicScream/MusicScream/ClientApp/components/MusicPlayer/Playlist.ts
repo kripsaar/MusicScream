@@ -59,6 +59,7 @@ export class Playlist extends PlaylistElement
             {
                 var subPlaylist = await Playlist.fromPlaylistTO(element);
                 subPlaylist.setParentPlaylist(playlist);
+                subPlaylist.currentIndex = -1;
                 playlist.internalList.push(subPlaylist.startMarker, ...subPlaylist.internalList, subPlaylist.endMarker);
             }
             else
