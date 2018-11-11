@@ -44,12 +44,12 @@ export class PlaylistComponent extends React.Component<{}, IPlaylistComponentSta
 
     public componentWillUnmount()
     {
-        // this.state.songList.removeIndexChangeEventHandler(this.handleIndexChange);
+        this.state.playlist.removeIndexChangeEventHandler(this.handleSongChange);
     }
 
-    private handleIndexChange = (newIndex: number) => 
+    private handleSongChange = () => 
     {
-        this.setState({currIndex: newIndex});
+        this.forceUpdate();
     }
 
     private refreshLibrary()
@@ -70,6 +70,7 @@ export class PlaylistComponent extends React.Component<{}, IPlaylistComponentSta
             var playlist = await Playlist.fromPlaylistTO(playlistTO);
             this.setState({playlist: playlist});
             this.musicPlayer.playlist = playlist;
+            playlist.addIndexChangeEventHandler(this.handleSongChange);
         }
     }
 
@@ -122,6 +123,7 @@ export class PlaylistComponent extends React.Component<{}, IPlaylistComponentSta
             return;
         if (this.musicPlayer)
             this.musicPlayer.startPlayback();
+        this.forceUpdate();
     }
 
     private moveSongListContainerElement(currIndex: number | string | undefined, newIndex: number)
@@ -179,7 +181,7 @@ export class PlaylistComponent extends React.Component<{}, IPlaylistComponentSta
                                             className={"draggable-list-item"}
                                             style={{
                                                 opacity: currentlyDraggingId == index ? 0 : undefined,
-                                                background: this.state.currIndex == index ? "#C6EDFF" : undefined
+                                                background: this.musicPlayer.selectedSong != null && element.getUuid() == this.musicPlayer.selectedSong.getUuid() ? "#C6EDFF" : undefined
                                             }}
                                         >
                                             <div className="draggable-element" style={{display: "flex", alignItems: "center"}}
