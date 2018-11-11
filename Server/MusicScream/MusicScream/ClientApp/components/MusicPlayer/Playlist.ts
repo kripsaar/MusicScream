@@ -171,6 +171,8 @@ export class Playlist extends PlaylistElement
     {
         if (this == playlist)
             return true;
+        if (this.id == playlist.id)
+            return true;
         for (var element of this.internalList)
         {
             if (!Playlist.isPlaylistMarker(element))
@@ -268,6 +270,9 @@ export class Playlist extends PlaylistElement
 
     public removeElement(index : number)
     {
+        if (index == this.currentIndex)
+            this.selectPreviousSong();
+        let currentElement = this.getCurrentSong();
         let element = this.internalList[index];
         if (element instanceof PlaylistMarker)
         {
@@ -290,6 +295,17 @@ export class Playlist extends PlaylistElement
         let parentMap = Playlist.buildParentMap(playlistSet);
         for (let [parentPlaylist, children] of parentMap)
             children.forEach(childId => parentPlaylist.refreshPlaylistById(childId));
+
+        if (currentElement != null)
+        {
+            let currentElementParent = currentElement.getParentPlaylist();
+            if (currentElementParent == null)
+                throw "Could not find current element's parent!";
+            let currentElementIndex = currentElementParent.findElement(currentElement);
+            if (currentElementIndex == -1)
+                throw "Could not find current element anymore!";
+            currentElementParent.setCurrentIndex(currentElementIndex);
+        }
 
         // this.exportPlaylist()
     }
@@ -329,8 +345,6 @@ export class Playlist extends PlaylistElement
         if (!Playlist.isPlaylistMarker(element))
         {
             this.internalList.splice(index, 1);
-            if (this.currentIndex >= index)
-                this.setCurrentIndex(this.currentIndex - 1);
         }
         else
         {
@@ -341,14 +355,7 @@ export class Playlist extends PlaylistElement
             var endIndex = index > otherIndex ? index : otherIndex;
             var length = endIndex - startIndex;
             this.internalList.splice(startIndex, length);
-            if (this.currentIndex >= startIndex && this.currentIndex <=  endIndex)
-                this.setCurrentIndex(startIndex - 1);
-            else if (this.currentIndex > endIndex)
-                this.setCurrentIndex(this.currentIndex - length);
         }
-        
-        if (this.currentIndex < 0)
-            this.setCurrentIndex(0);
     }
 
     public getNextSong() : PlayableElement | null
@@ -460,6 +467,7 @@ export class Playlist extends PlaylistElement
 
     public addSongs(index : number, ...songs : Song[])
     {
+        let currentElement = this.getCurrentSong();
         let element = this.internalList[index];
         let parentPlaylist = element.getParentPlaylist();
         if (parentPlaylist == null)
@@ -483,6 +491,17 @@ export class Playlist extends PlaylistElement
         for (let [parentPlaylist, children] of parentMap)
             children.forEach(childId => parentPlaylist.refreshPlaylistById(childId));
 
+        if (currentElement != null)
+        {
+            let currentElementParent = currentElement.getParentPlaylist();
+            if (currentElementParent == null)
+                throw "Couldn't find current element's parent!";
+            let currentElementIndex = currentElementParent.findElement(currentElement);
+            if (currentElementIndex == -1)
+                throw "Couldn't find current element anymore after adding songs!";
+            currentElementParent.setCurrentIndex(currentElementIndex);
+        }
+
         // this.exportPlaylist()
     }
 
@@ -494,8 +513,6 @@ export class Playlist extends PlaylistElement
             return this.queueSongs(...songs);
         var playableElements = songs.map(song => new PlayableElement(song, this));
         this.internalList.splice(index, 0, ...playableElements);
-        if (index <= this.currentIndex)
-            this.setCurrentIndex(this.currentIndex + songs.length);
     }
 
     public addPlaylist(index: number, playlist : Playlist)
@@ -506,6 +523,7 @@ export class Playlist extends PlaylistElement
             this.queuePlaylist(playlist);
         if (playlist.containsPlaylist(this))
             return;
+        var currentElement = this.getCurrentSong();
         var element = this.internalList[index];
         var parentPlaylist = element.getParentPlaylist();
         if (parentPlaylist == null)
@@ -531,6 +549,17 @@ export class Playlist extends PlaylistElement
             children.forEach(childId => parent.refreshPlaylistById(childId));
         }
 
+        if (currentElement != null)
+        {
+            let currentElementParent = currentElement.getParentPlaylist();
+            if (currentElementParent == null)
+                throw "Couldn't find current element's parent!";
+            let currentElementIndex = currentElementParent.findElement(currentElement);
+            if (currentElementIndex == -1)
+                throw "Couldn't find current element anymore after adding playlist!";
+            currentElementParent.setCurrentIndex(currentElementIndex);
+        }
+
         // this.exportPlaylist();
     }
 
@@ -547,8 +576,6 @@ export class Playlist extends PlaylistElement
         playlistClone.setParentPlaylist(this);
 
         this.internalList.splice(index, 0, playlistClone.getStartMarker(), ...playlistClone.internalList, playlistClone.getEndMarker());
-        // if (index <= this.currentIndex)
-        //     this.setCurrentIndex(this.currentIndex + playlist.internalList.length + 2);
         // this.exportPlaylist();
     }
 
@@ -581,8 +608,7 @@ export class Playlist extends PlaylistElement
 
     public queueSongs(...songs : Song[])
     {
-        // TODO: Redo
-        this.internalList.push(...songs.map(song => new PlayableElement(song)));
+        this.internalList.push(...songs.map(song => new PlayableElement(song, this)));
         let parentPlaylist = this.getParentPlaylist();
         if (parentPlaylist == null)
             this.exportPlaylist();
@@ -592,12 +618,11 @@ export class Playlist extends PlaylistElement
 
     public queuePlaylist(playlist : Playlist)
     {
-        // TODO: Redo
         if (playlist.containsPlaylist(this))
             return;
-        this.internalList.push(playlist.getStartMarker())
-        this.internalList.push(...playlist.internalList);
-        this.internalList.push(playlist.getEndMarker());
+        let playlistClone = playlist.clone();
+        playlistClone.setParentPlaylist(this);
+        this.internalList.push(playlistClone.getStartMarker(), ...playlistClone.internalList, playlistClone.getEndMarker());
         let parentPlaylist = this.getParentPlaylist();
         if (parentPlaylist == null)
             this.exportPlaylist();
@@ -628,17 +653,15 @@ export class Playlist extends PlaylistElement
         var playlist = element.getPlaylist();
         if (!element.isStart())
             index = this.internalList.indexOf(playlist.getStartMarker());
-        var currentIndex = this.currentIndex;
         var limit = playlist.internalList.length + 2;
         this.internalList.splice(index, limit, playlist);
 
-        if (index < currentIndex && currentIndex < index + limit)
+        if (index < this.currentIndex && this.currentIndex < index + limit)
         {
-            playlist.setCurrentIndex(currentIndex - index - 1);
             this.setCurrentIndex(index);
         }
-        else if (currentIndex >= index + limit)
-            this.setCurrentIndex(currentIndex - (limit - 1))
+        else if (this.currentIndex >= index + limit)
+            this.setCurrentIndex(this.currentIndex - (limit - 1))
 
         let parentPlaylist = this.getParentPlaylist();
         if (parentPlaylist != null)
@@ -685,10 +708,10 @@ export class Playlist extends PlaylistElement
     {
         if (index < 0 || index >= this.internalList.length)
             throw "Index out of bounds!";
+        var currentElement = this.getCurrentSong();
         var element = this.internalList[index];
         if (Playlist.isPlaylistMarker(element))
             return;
-        var currentIndex = this.currentIndex;
         if (newIndex < 0)
             newIndex = 0;
 
@@ -748,7 +771,16 @@ export class Playlist extends PlaylistElement
         for (let [parentPlaylist, children] of parentMap)
             children.forEach(childId => parentPlaylist.refreshPlaylistById(childId));
 
-        // TODO: Something, something current index
+        if (currentElement != null)
+        {
+            let currentElementParent = currentElement.getParentPlaylist();
+            if (currentElementParent == null)
+                throw "Couldn't find current element's parent!";
+            let currentElementIndex = currentElementParent.findElement(currentElement);
+            if (currentElementIndex == -1)
+                throw "Couldn't find current element anymore after moving element!";
+            currentElementParent.setCurrentIndex(currentElementIndex);
+        }
 
         // this.exportPlaylist();
     }
