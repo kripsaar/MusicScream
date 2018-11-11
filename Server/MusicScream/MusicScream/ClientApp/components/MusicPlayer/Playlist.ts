@@ -361,45 +361,48 @@ export class Playlist extends PlaylistElement
         return this.getOrSelectNextSong(true);
     }
 
-    private getOrSelectNextSong(selectSong : boolean) : PlayableElement | null
+    private getOrSelectNextSong(selectSong : boolean, currentIndex = this.currentIndex) : PlayableElement | null
     {
-        var index = this.currentIndex + 1;
+        var index = currentIndex + 1;
         if (index >= this.internalList.length)
-            return null;
-        var element = this.internalList[index];
-        while(index < this.internalList.length && Playlist.isPlaylistMarker(element))
         {
-            index++;
-            element = this.internalList[index];
-        }
-        if (index >= this.internalList.length)
+            if (selectSong)
+                this.currentIndex = -1;
             return null;
+        }
+        let element = this.internalList[index];
+        if (element instanceof PlaylistMarker)
+        {
+            let targetPlaylist = element.getPlaylist();
+            let result = targetPlaylist.getOrSelectNextSong(selectSong);
+            if (result == null)
+                return this.getOrSelectNextSong(selectSong, index);
+            return result;
+        }
+        let parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist == null)
+            throw "Couldn't find parent playlist while selecting next song!";
+        if (parentPlaylist != this)
+            return parentPlaylist.getOrSelectNextSong(selectSong);
 
-        var parentPlaylist = element.getParentPlaylist();
-        if (parentPlaylist != null && parentPlaylist != this)
-            parentPlaylist.setCurrentIndex(this.findElement(element));
-
-        if (Playlist.isSong(element))
+        if (element instanceof PlayableElement)
         {
             if (selectSong)
                 this.setCurrentIndex(index);
             return element;
         }
-        if (Playlist.isPlaylist(element))
+        if (element instanceof Playlist)
         {
-            if (selectSong)
-                this.setCurrentIndex(index);
-            var nextSong = element.getOrSelectNextSong(selectSong);
-            if (nextSong == null)
+            var result = element.getOrSelectNextSong(selectSong);
+            if (result == null)
             {
-                // Assume we passed end of inner playlist
-                return this.getOrSelectNextSong(selectSong);
+                // Assume we reached end of inner playlist
+                return this.getOrSelectNextSong(selectSong, index);
             }
-            return nextSong;
+            return result;
         }
         return null;
     }
-
 
     public getPreviousSong() : PlayableElement | null
     {
@@ -411,39 +414,44 @@ export class Playlist extends PlaylistElement
         return this.getOrSelectPreviousSong(true);
     }
 
-    private getOrSelectPreviousSong(selectSong : boolean) : PlayableElement | null
+    private getOrSelectPreviousSong(selectSong : boolean, currentIndex = this.currentIndex) : PlayableElement | null
     {
-        var index = this.currentIndex - 1;
+        var index = currentIndex - 1;
         if (index < 0)
-            return null;
-        var element = this.internalList[index];
-        while (index >= 0 && Playlist.isPlaylistMarker(element))
         {
-            index--;
-            element = this.internalList[index]
-        }
-        if (index < 0)
+            if (selectSong)
+                this.currentIndex = -1;
             return null;
+        }
+        var element = this.internalList[index];
+        if (element instanceof PlaylistMarker)
+        {
+            let targetPlaylist = element.getPlaylist();
+            let result = targetPlaylist.getOrSelectPreviousSong(selectSong);
+            if (result == null)
+                return this.getOrSelectPreviousSong(selectSong, index);
+            return result;
+        }
 
-        var parentPlaylist = element.getParentPlaylist();
-        if (parentPlaylist != null && parentPlaylist != this)
-            parentPlaylist.setCurrentIndex(this.findElement(element));
+        let parentPlaylist = element.getParentPlaylist();
+        if (parentPlaylist == null)
+            throw "Couldn't find parent playlist while selecting previous song!";
+        if (parentPlaylist != this)
+            return parentPlaylist.getOrSelectPreviousSong(selectSong);
 
-        if (Playlist.isSong(element))
+        if (element instanceof PlayableElement)
         {
             if (selectSong)
                 this.setCurrentIndex(index);
             return element;
         }    
-        if (Playlist.isPlaylist(element))
+        if (element instanceof Playlist)
         {
-            if (selectSong)
-                this.setCurrentIndex(index);
             var previousSong = element.getOrSelectPreviousSong(selectSong);
             if (previousSong == null)
             {
                 // Assume we passed first song of child playlist
-                return this.getOrSelectPreviousSong(selectSong);
+                return this.getOrSelectPreviousSong(selectSong, index);
             }
             return previousSong;
         }
