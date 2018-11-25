@@ -3,7 +3,6 @@ import { AlbumInfo } from "./AlbumModel";
 import { GenreInfo } from "./GenreModel";
 import { ProductInfo } from "./ProductModel";
 import { SeasonInfo } from "./SeasonModel";
-import * as Uuid from "uuid";
 import { Playlist } from "ClientApp/components/MusicPlayer/Playlist";
 import { PlaylistElement } from "./PlaylistModel";
 

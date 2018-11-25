@@ -156,13 +156,6 @@ export class MusicPlayerControls extends React.Component<IMusicPlayerControlsPro
         return <div className="media-control-bar">
             <div className="media-control-currently-playing">
                 { this.musicPlayer.selectedSong ?
-                    // <a style={{height: "100%"}} href={this.musicPlayer.getSongArtUrl(this.musicPlayer.selectedSong)}>
-                    //     <img 
-                    //         src={this.musicPlayer.getSongArtUrl(this.musicPlayer.selectedSong)} 
-                    //         alt="Nope"
-                    //         style={{height: "100%"}}
-                    //     />
-                    // </a>
                     <ImageModal src={this.musicPlayer.getSongArtUrl(this.musicPlayer.selectedSong)} style={{height: "100%"}}>
                     </ImageModal>
                 : null}

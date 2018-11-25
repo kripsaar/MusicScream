@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Communication } from '../../../Communication';
 import { Artist } from '../../../Models/ArtistModel';
 import { Link } from 'react-router-dom';
-import { MdAlbum } from 'react-icons/md';
 
 interface IArtistPageProps
 {

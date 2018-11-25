@@ -1,8 +1,4 @@
-import * as React from 'react';
-import {Communication} from '../../Communication';
 import {Song, PlayableElement} from '../../Models/SongModel';
-import { MusicPlayerControls } from './MusicPlayerControls';
-import { SongList } from './SongList';
 import { Playlist } from './Playlist';
 
 const STOP_STATE : string = "stop";

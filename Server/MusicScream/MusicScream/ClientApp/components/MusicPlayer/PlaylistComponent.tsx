@@ -1,9 +1,7 @@
 import * as React from 'react';
-import { MusicPlayer, MusicPlayerInstance } from "./MusicPlayer";
+import { MusicPlayerInstance } from "./MusicPlayer";
 import { Communication } from '../../Communication';
-import { SongList } from './SongList';
 import { Draggable, Droppable, DragComponent, DragState } from "react-dragtastic";
-import { SongListContainer } from './SongListContainer';
 
 import { MdDragHandle } from 'react-icons/md';
 import { Playlist } from './Playlist';
@@ -38,7 +36,6 @@ export class PlaylistComponent extends React.Component<{}, IPlaylistComponentSta
 
     public componentDidMount()
     {
-        // this.getSongList();
         this.refreshLibrary();
     }
 
@@ -56,7 +53,6 @@ export class PlaylistComponent extends React.Component<{}, IPlaylistComponentSta
     {
         Communication.simpleAjax("Music/RefreshMusicLibrary", 
             () => { this.getPlaylist(1); },
-            // () => { this.getSongList(); },
             () => { console.log("Refresh failed!"); }
         );
     }
@@ -92,28 +88,7 @@ export class PlaylistComponent extends React.Component<{}, IPlaylistComponentSta
 
             this.setState({playlist: externalPlaylist});
             this.musicPlayer.playlist = playlist;
-            // songListContainer.addIndexChangeEventHandler(this.handleIndexChange);
         }
-        // Communication.getJson("Music/GetAllSongs",
-        //     (data: any) =>
-        //     {
-        //         if (data.songs)
-        //         {
-        //             var externalPlaylist = new Playlist(false ,data.songs.slice(0, 2), "External Song List");
-        //             var internalPlaylist = new Playlist(false, data.songs.slice(3), "Internal Song List");
-        //             var deepPlaylist = new Playlist(false, data.songs.slice(0, 3), "Deeper Song List");
-        //             internalPlaylist.queuePlaylist(deepPlaylist);
-        //             internalPlaylist.queueSongs(...data.songs.slice(4, 5));
-        //             externalPlaylist.queuePlaylist(internalPlaylist);
-
-        //             var playlist = externalPlaylist;
-
-        //             this.setState({playlist: externalPlaylist});
-        //             this.musicPlayer.playlist = playlist;
-        //             // songListContainer.addIndexChangeEventHandler(this.handleIndexChange);
-        //         }
-        //     }
-        // );
     }
 
     private selectSong(index: number)
