@@ -60,6 +60,24 @@ namespace MusicScream.Controllers
             }));
         }
 
+        private JsonResult ArtistToJson(Artist artist)
+        {
+            return Json(JObject.FromObject(new
+            {
+                artist = new
+                {
+                    artist.Id,
+                    artist.Name,
+                    artist.Aliases,
+
+                    Albums = artist.AlbumLinks.Select(_ => new { Id = _.AlbumId, Title = _.Album.Title }),
+                    Songs = artist.SongLinks.Select(_ => new { Id = _.SongId, Title = _.Song.Title }),
+                    Units = artist.ArtistUnitLinks.Select(_ => new { Id = _.UnitId, Name = _.Unit.Name }),
+                    UnitMembers = artist.UnitArtistLinks.Select(_ => new { Id = _.ArtistId, Name = _.Artist.Name })
+                }
+            }));
+        }
+
         public IActionResult GetAllSongs()
         {
             return SongsToJson(_dbContext.Songs
@@ -85,6 +103,18 @@ namespace MusicScream.Controllers
             if (songData == null)
                 return Ok();
             return new FileContentResult(songData.Data, songData.MimeType);
+        }
+
+        public IActionResult GetArtist(int id)
+        {
+            var artist = _dbContext.Artists
+                .Include(_ => _.AlbumLinks).ThenInclude(_ => _.Album)
+                .Include(_ => _.SongLinks).ThenInclude(_ => _.Song)
+                .Include(_ => _.ArtistUnitLinks).ThenInclude(_ => _.Unit)
+                .Include(_ => _.UnitArtistLinks).ThenInclude(_ => _.Artist)
+                .Single(e => e.Id == id);
+            var result = ArtistToJson(artist);
+            return result;
         }
 
         public async Task<IActionResult> RefreshMusicLibrary()
