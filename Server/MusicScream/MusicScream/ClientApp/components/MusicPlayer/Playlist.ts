@@ -10,6 +10,8 @@ export class Playlist extends PlaylistElement
     private name : string;
     private internalList : PlaylistElement[] = [];
     private currentIndex : number;
+
+    private isTemporary : boolean = false;
     
     private startMarker : PlaylistMarker;
     private endMarker : PlaylistMarker;
@@ -19,7 +21,8 @@ export class Playlist extends PlaylistElement
     private constructor(temporary : boolean = true, listOfSongs : Song[] = [], name : string = "Unnamed Playlist", id : number = 0)
     {
         super();
-        this.setId(temporary ? -1 : id);
+        this.isTemporary = temporary;
+        this.setId(id);
         this.name = name;
         listOfSongs.forEach(song => this.internalList.push(new PlayableElement(song)));
         this.currentIndex = 0;
@@ -39,6 +42,13 @@ export class Playlist extends PlaylistElement
         }
     }
 
+    private setTemporary(isTemporary : boolean)
+    {
+        this.isTemporary = isTemporary;
+        var playlistList = this.internalList.filter(element => (element instanceof Playlist || (element instanceof PlaylistMarker && element.isStart)) && element.getParentPlaylist() == this);
+        playlistList.forEach(element => element instanceof PlaylistMarker ? element.getPlaylist().setTemporary(isTemporary) : (element as Playlist).setTemporary(isTemporary));
+    }
+
     public static getEmptyPlaylist() : Playlist
     {
         return new Playlist();
@@ -51,15 +61,15 @@ export class Playlist extends PlaylistElement
         return playlist;
     }
 
-    public static async fromPlaylistTO(playlistTO : PlaylistTO) : Promise<Playlist>
+    public static async fromPlaylistTO(playlistTO : PlaylistTO, isTemporary = false) : Promise<Playlist>
     {
-        var playlist = new Playlist(true, [], playlistTO.name);
+        var playlist = new Playlist(false, [], playlistTO.name);
         playlist.setId(playlistTO.id);
         for (let element of playlistTO.list)
         {
             if (Playlist.isPlaylistInfo(element))
             {
-                var subPlaylist = await Playlist.fromPlaylistTO(element);
+                var subPlaylist = await Playlist.fromPlaylistTO(element, isTemporary);
                 subPlaylist.setParentPlaylist(playlist);
                 subPlaylist.currentIndex = -1;
                 playlist.internalList.push(subPlaylist.startMarker, ...subPlaylist.internalList, subPlaylist.endMarker);
@@ -186,6 +196,16 @@ export class Playlist extends PlaylistElement
                 return true;
         }
         return false;
+    }
+
+    public saveAs(id : number = 0, name : string | null = null)
+    {
+        if (name != null)
+            this.name = name;
+        if (id > 0)
+            this.setId(id);
+        this.setTemporary(false);
+        this.exportPlaylist();
     }
 
     public getCurrentSong() : PlayableElement | null
@@ -575,6 +595,7 @@ export class Playlist extends PlaylistElement
             return;
         
         let playlistClone = playlist.clone();
+        playlistClone.setTemporary(this.isTemporary);
         playlistClone.setParentPlaylist(this);
 
         this.internalList.splice(index, 0, playlistClone.getStartMarker(), ...playlistClone.internalList, playlistClone.getEndMarker());
@@ -583,7 +604,7 @@ export class Playlist extends PlaylistElement
 
     private clone() : Playlist
     {
-        let result = new Playlist(false, [], this.name, this.id);
+        let result = new Playlist(this.isTemporary, [], this.name, this.id);
         for (var index = 0; index < this.internalList.length; ++index)
         {
             let element = this.internalList[index];
@@ -789,7 +810,7 @@ export class Playlist extends PlaylistElement
 
     private async exportPlaylist()
     {
-        if (this.id < 0)
+        if (this.id < 0 || this.isTemporary)
             return;
         var playlistTO = this.toPlaylistTO();
         let result = await Communication.ajaxPostJsonPromise("Playlist/UpdatePlaylist", playlistTO);
