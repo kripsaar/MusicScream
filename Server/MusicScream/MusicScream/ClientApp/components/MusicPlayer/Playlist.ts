@@ -30,6 +30,11 @@ export class Playlist extends PlaylistElement
         this.endMarker = new PlaylistMarker(this, false);
     }
 
+    public getId() : number
+    {
+        return this.id;
+    }
+
     private setId(id : number)
     {
         let oldId = this.id;
