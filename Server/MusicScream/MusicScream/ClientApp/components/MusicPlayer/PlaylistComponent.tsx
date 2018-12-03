@@ -7,6 +7,11 @@ import { MdDragHandle } from 'react-icons/md';
 import { Playlist } from './Playlist';
 import { PlaylistTO } from 'ClientApp/Models/PlaylistModel';
 
+interface IPlaylistComponentProps
+{
+    playlist: Playlist;
+}
+
 interface IPlaylistComponentState
 {
     playlist : Playlist;
@@ -18,11 +23,11 @@ const STOP_STATE : string = "stop";
 const PLAY_STATE : string = "play";
 const PAUSE_STATE : string = "pause";
 
-export class PlaylistComponent extends React.Component<{}, IPlaylistComponentState>
+export class PlaylistComponent extends React.Component<IPlaylistComponentProps, IPlaylistComponentState>
 {
     musicPlayer = MusicPlayerInstance;
 
-    constructor(props: {}, state: IPlaylistComponentState)
+    constructor(props: IPlaylistComponentProps, state: IPlaylistComponentState)
     {
         super(props, state);
         var playlist = Playlist.getEmptyPlaylist();
@@ -32,6 +37,7 @@ export class PlaylistComponent extends React.Component<{}, IPlaylistComponentSta
             songState: STOP_STATE,
             currIndex: 0
         }
+        this.setPlaylist(props.playlist);
     }
 
     public componentDidMount()
@@ -44,6 +50,12 @@ export class PlaylistComponent extends React.Component<{}, IPlaylistComponentSta
         this.state.playlist.removeIndexChangeEventHandler(this.handleSongChange);
     }
 
+    public componentWillReceiveProps(nextProps: IPlaylistComponentProps)
+    {
+        if (nextProps.playlist.getId() != this.state.playlist.getId())
+            this.setPlaylist(nextProps.playlist)
+    }
+
     private handleSongChange = () => 
     {
         this.forceUpdate();
@@ -52,9 +64,16 @@ export class PlaylistComponent extends React.Component<{}, IPlaylistComponentSta
     private refreshLibrary()
     {
         Communication.simpleAjax("Music/RefreshMusicLibrary", 
-            () => { this.getPlaylist(1); },
+            () => { /*this.getPlaylist(1);*/ },
             () => { console.log("Refresh failed!"); }
         );
+    }
+
+    private setPlaylist(playlist: Playlist)
+    {
+        this.setState({playlist: playlist});
+        this.musicPlayer.playlist = playlist;
+        playlist.addIndexChangeEventHandler(this.handleSongChange);
     }
 
     private async getPlaylist(playlistId : number)
@@ -64,7 +83,7 @@ export class PlaylistComponent extends React.Component<{}, IPlaylistComponentSta
         {
             var playlistTO : PlaylistTO = data.playlistTO;
             var playlist = await Playlist.fromPlaylistTO(playlistTO);
-            this.setState({playlist: playlist});
+            // this.setState({playlist: playlist});
             this.musicPlayer.playlist = playlist;
             playlist.addIndexChangeEventHandler(this.handleSongChange);
         }
@@ -86,7 +105,7 @@ export class PlaylistComponent extends React.Component<{}, IPlaylistComponentSta
 
             var playlist = externalPlaylist;
 
-            this.setState({playlist: externalPlaylist});
+            // this.setState({playlist: externalPlaylist});
             this.musicPlayer.playlist = playlist;
         }
     }
