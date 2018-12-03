@@ -18,6 +18,14 @@ namespace MusicScream.Models
         public IEnumerable<ArtistAlbumLink> ArtistLinks { get; set; }
         public IEnumerable<AlbumGenreLink> GenreLinks { get; set; }
         public IEnumerable<ProductAlbumLink> ProductLinks { get; set; }
+
+        public Album()
+        {
+            SongLinks = new List<AlbumSongLink>();
+            ArtistLinks = new List<ArtistAlbumLink>();
+            GenreLinks = new List<AlbumGenreLink>();
+            ProductLinks = new List<ProductAlbumLink>();
+        }
     }
 
     public class AlbumInfo
