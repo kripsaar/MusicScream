@@ -319,6 +319,8 @@ namespace MusicScream.Utilities
             var minDist = int.MaxValue;
             var title = prelimTitle;
             var aliases = new List<string>();
+            if (albumPage == null)
+                return (title, aliases);
             foreach (var disc in albumPage.Discs)
             {
                 foreach (var track in disc.Tracks)
