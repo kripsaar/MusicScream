@@ -1,3 +1,0 @@
-Nested playlists
-
-Artists with aliases -> VGMDB API? (vgmdb.info)
