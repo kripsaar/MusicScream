@@ -8,6 +8,7 @@ drop table if exists musicscream."ProductSongLinks";
 drop table if exists musicscream."FranchiseProductLinks";
 drop table if exists musicscream."SeasonSongLinks";
 drop table if exists musicscream."SeasonProductLinks";
+drop table if exists musicscream."ArtistUnitLinks";
 drop table if exists musicscream."PlaylistElements";
 drop table if exists musicscream."Playlists";
 drop table if exists musicscream."Genres";

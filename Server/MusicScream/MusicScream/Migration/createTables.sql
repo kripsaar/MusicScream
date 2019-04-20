@@ -2,7 +2,13 @@ create table if not exists musicscream."Artists"(
 	"Id"			serial primary key,
 	"Name"			text,
 	"Aliases"		text[],
-	"VgmdbLink"		text[]
+	"VgmdbLink"		text
+);
+
+create table if not exists musicscream."ArtistUnitLinks"(
+	"ArtistId"		int references musicscream."Artists",
+	"UnitId"		int references musicscream."Artists",
+	primary key ("ArtistId", "UnitId")
 );
 
 create table if not exists musicscream."Songs"(
