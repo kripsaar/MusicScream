@@ -1,0 +1,1 @@
+CREATE SCHEMA musicscream AUTHORIZATION musicscream_owner;
