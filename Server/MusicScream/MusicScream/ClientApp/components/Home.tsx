@@ -36,6 +36,7 @@ export class Home extends React.Component<RouteComponentProps<{}>, {}> {
                 You can generate an ASP.NET Core application with React and Redux using <code>dotnet new reactredux</code> instead of using this template.
             </p>
             <Button bsStyle="default" onClick={() => this.refreshLibrary()}>Refresh Library</Button> 
+            <Button bsStyle="default" onClick={() => Communication.simpleAjax("Account/GetAllUsers", (reply) => {console.log(reply)}, (data) => {console.log(data)})}>Click me!</Button>
 
         </div>;
     }

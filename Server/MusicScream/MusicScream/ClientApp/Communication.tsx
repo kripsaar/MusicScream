@@ -1,4 +1,6 @@
 import * as $ from 'jquery';
+import AuthService from './util/AuthService';
+import { User } from './Models/UserModel';
 
 export class Communication
 {
@@ -7,7 +9,13 @@ export class Communication
         const successFunction = options.success;
         const errorFunction = options.error;
 
+        let user : User | null = AuthService.getCurrentUser();
 
+        if (user)
+            options.headers = {
+                "Authorization" : "Bearer " + user.token
+            };
+        
         options.error = function(data: any, ajaxOptions: any, thrownError: any)
             {
                 if (errorFunction)
@@ -51,19 +59,6 @@ export class Communication
         return new Promise((resolve, reject) =>
         {
             this.simpleAjax(url, resolve, reject);
-        });
-    }
-
-    public static getJson(url: string, onSuccess?: ((data: any) => void))
-    {
-        $.getJSON(url, onSuccess);
-    }
-
-    public static getJsonPromise(url: string) : Promise<any>
-    {
-        return new Promise((resolve) => 
-        {
-            $.getJSON(url, resolve);
         });
     }
 

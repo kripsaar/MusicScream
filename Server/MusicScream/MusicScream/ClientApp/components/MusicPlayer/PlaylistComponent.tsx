@@ -91,7 +91,7 @@ export class PlaylistComponent extends React.Component<IPlaylistComponentProps, 
 
     private async getSongList()
     {
-        let data = await Communication.getJsonPromise("Music/GetAllSongs");
+        let data = await Communication.simpleAjaxPromise("Music/GetAllSongs");
         if (data.songs)
         {
             var externalPlaylist = await Playlist.createPlaylist(false ,data.songs.slice(0, 2), "External Song List");
